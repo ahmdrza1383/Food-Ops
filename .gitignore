@@ -1,0 +1,11 @@
+# Node
+node_modules/
+npm-debug.log
+
+# Environment Variables
+.env
+.env.local
+
+# OS Files
+.DS_Store
+Thumbs.db
