@@ -1,11 +1,15 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
+const authRoutes = require('./routes/authRoutes');
+const sanitize = require('./middlewares/sanitize'); 
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json());
+
+app.use(sanitize);
 
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
@@ -25,6 +29,8 @@ app.get('/', (req, res) => {
     message: 'Food-Ops API Server is running successfully!' 
   });
 });
+
+app.use('/api/auth', authRoutes);
 
 app.listen(PORT, () => {
   console.log('----------------------------------------------------');
