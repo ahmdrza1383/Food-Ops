@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const MONGO_URI = 'mongodb://admin:password@127.0.0.1:27017/foodops?authSource=admin';
+const MONGO_URI = 'mongodb://admin:password@localhost:27017/foodops?authSource=admin';
 
 
 const RoleSchema = new mongoose.Schema({
@@ -35,14 +35,15 @@ const OrderSchema = new mongoose.Schema({
     customer_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     items: [{
         menu_item_id: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem', required: true },
-        quantity: { type: Number, required: true, min: 1 }
+        quantity: { type: Number, required: true, min: 1 },
+        unit_price: { type: Number, required: true } // اضافه شدن این فیلد
     }],
     total_price: { type: Number, required: true },
     discount_code_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Discount' },
     final_price: { type: Number, required: true },
     status: {
         type: String,
-        enum: ['Registered', 'Preparing', 'Ready for Delivery', 'Delivered', 'Canceled'],
+        enum: ['registered', 'preparing', 'ready_for_delivery', 'delivered', 'canceled'],
         default: 'Registered'
     },
     estimated_ready_time: { type: Date }
