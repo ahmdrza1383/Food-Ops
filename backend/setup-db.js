@@ -99,19 +99,6 @@ async function initializeDatabase() {
         await SystemSetting.createCollection();
 
         console.log('All 8 collections have been successfully created in the database!');
-
-        const existingRoles = await Role.countDocuments();
-        if (existingRoles === 0) {
-            console.log('Creating default roles...');
-            await Role.insertMany([
-                { name: 'Admin', permissions: ['all'] },
-                { name: 'Kitchen Staff', permissions: ['view_kitchen_queue', 'update_order_status'] },
-                { name: 'Cashier', permissions: ['view_ready_orders', 'deliver_orders'] },
-                { name: 'Customer', permissions: ['create_order', 'view_own_orders', 'cancel_own_order'] }
-            ]);
-            console.log('Default system roles added.');
-        }
-
         console.log('Operation completed. Exiting...');
         process.exit(0);
 
