@@ -190,6 +190,291 @@ async function seedDatabase() {
             console.log('Menu items already exist in database. skipping...');
         }
 
+        // --- قدم پنجم: اضافه کردن سفارش‌های اولیه (Orders) ---
+        const existingOrders = await Order.countDocuments();
+        if (existingOrders === 0) {
+            console.log('Seeding Orders...');
+
+            const allUsers = await User.find();
+            const userMap = {};
+            allUsers.forEach(u => userMap[u.fullname] = u._id);
+
+            const allMenuItems = await MenuItem.find();
+            const menuMap = {};
+            allMenuItems.forEach(m => menuMap[m.name] = { id: m._id, price: m.price });
+
+            const staticOrders = [
+                { customer: 'Ali Rezaee', status: 'delivered', date: '2026-07-20T13:15:00', items: [{ name: 'Special Pizza', qty: 1 }, { name: 'Soda', qty: 2 }] },
+                { customer: 'Ali Rezaee', status: 'delivered', date: '2026-07-21T20:30:00', items: [{ name: 'Special Burger', qty: 2 }, { name: 'French Fries', qty: 1 }, { name: 'Persian Doogh', qty: 2 }] },
+                { customer: 'Ali Rezaee', status: 'cancelled', date: '2026-07-22T14:00:00', items: [{ name: 'Koobideh Kebab', qty: 1 }] },
+
+                { customer: 'Maryam Ahmadi', status: 'delivered', date: '2026-07-20T14:20:00', items: [{ name: 'Joojeh Kebab', qty: 2 }, { name: 'Shirazi Salad', qty: 2 }, { name: 'Persian Doogh', qty: 2 }] },
+                { customer: 'Maryam Ahmadi', status: 'cancelled', date: '2026-07-22T19:20:00', items: [{ name: 'Caesar Salad', qty: 2 }, { name: 'Mineral Water', qty: 2 }] },
+                { customer: 'Maryam Ahmadi', status: 'delivered', date: '2026-07-23T19:45:00', items: [{ name: 'Pepperoni Pizza', qty: 1 }, { name: 'Garlic Bread', qty: 1 }, { name: 'Soda', qty: 1 }] },
+
+                { customer: 'Reza Mohammadi', status: 'delivered', date: '2026-07-21T12:30:00', items: [{ name: 'Ghormeh Sabzi', qty: 1 }, { name: 'Mineral Water', qty: 1 }] },
+                { customer: 'Reza Mohammadi', status: 'cancelled', date: '2026-07-24T21:10:00', items: [{ name: 'Meat and Mushroom Pizza', qty: 2 }, { name: 'Soda', qty: 2 }] },
+
+                { customer: 'Sara Karimi', status: 'delivered', date: '2026-07-20T15:00:00', items: [{ name: 'Caesar Salad', qty: 1 }, { name: 'Mineral Water', qty: 1 }] },
+                { customer: 'Sara Karimi', status: 'delivered', date: '2026-07-22T13:40:00', items: [{ name: 'Oven-Baked Ham Sandwich', qty: 1 }, { name: 'French Fries', qty: 1 }, { name: 'Soda', qty: 1 }] },
+                { customer: 'Sara Karimi', status: 'cancelled', date: '2026-07-24T13:10:00', items: [{ name: 'Pepperoni Pizza', qty: 1 }, { name: 'Garlic Bread', qty: 1 }] },
+                { customer: 'Sara Karimi', status: 'delivered', date: '2026-07-25T20:00:00', items: [{ name: 'Special Burger', qty: 1 }, { name: 'Soda', qty: 1 }] },
+
+                { customer: 'Omid Mousavi', status: 'delivered', date: '2026-07-21T21:30:00', items: [{ name: 'Pepperoni Pizza', qty: 2 }, { name: 'Garlic Bread', qty: 1 }] },
+                { customer: 'Omid Mousavi', status: 'delivered', date: '2026-07-24T14:15:00', items: [{ name: 'Gheymeh Stew', qty: 1 }, { name: 'Shirazi Salad', qty: 1 }, { name: 'Persian Doogh', qty: 1 }] },
+
+                { customer: 'Negar Ghasemi', status: 'delivered', date: '2026-07-20T19:00:00', items: [{ name: 'Koobideh Kebab', qty: 2 }, { name: 'Persian Doogh', qty: 2 }] },
+                { customer: 'Negar Ghasemi', status: 'cancelled', date: '2026-07-23T13:20:00', items: [{ name: 'Special Pizza', qty: 1 }] },
+
+                { customer: 'Hossein Hosseini', status: 'cancelled', date: '2026-07-21T21:00:00', items: [{ name: 'Special Burger', qty: 2 }, { name: 'Soda', qty: 2 }] },
+                { customer: 'Hossein Hosseini', status: 'delivered', date: '2026-07-22T20:45:00', items: [{ name: 'Meat and Mushroom Pizza', qty: 1 }, { name: 'French Fries', qty: 1 }, { name: 'Soda', qty: 2 }] },
+                { customer: 'Hossein Hosseini', status: 'delivered', date: '2026-07-25T15:30:00', items: [{ name: 'Joojeh Kebab', qty: 1 }, { name: 'Mineral Water', qty: 1 }] },
+
+                { customer: 'Zahra Kazemi', status: 'delivered', date: '2026-07-21T13:50:00', items: [{ name: 'Special Burger', qty: 2 }, { name: 'Caesar Salad', qty: 1 }] },
+                { customer: 'Zahra Kazemi', status: 'delivered', date: '2026-07-24T19:15:00', items: [{ name: 'Ghormeh Sabzi', qty: 2 }, { name: 'Shirazi Salad', qty: 2 }] },
+                { customer: 'Zahra Kazemi', status: 'cancelled', date: '2026-07-25T20:15:00', items: [{ name: 'Oven-Baked Ham Sandwich', qty: 1 }, { name: 'French Fries', qty: 1 }] },
+
+                { customer: 'Mehdi Nouri', status: 'delivered', date: '2026-07-20T21:00:00', items: [{ name: 'Oven-Baked Ham Sandwich', qty: 2 }, { name: 'Soda', qty: 2 }] },
+                { customer: 'Mehdi Nouri', status: 'cancelled', date: '2026-07-23T20:10:00', items: [{ name: 'Koobideh Kebab', qty: 3 }, { name: 'Persian Doogh', qty: 3 }] },
+
+                { customer: 'Fatemeh Jafari', status: 'delivered', date: '2026-07-22T14:30:00', items: [{ name: 'Pepperoni Pizza', qty: 1 }, { name: 'Special Pizza', qty: 1 }, { name: 'Soda', qty: 2 }] },
+                { customer: 'Fatemeh Jafari', status: 'cancelled', date: '2026-07-23T15:45:00', items: [{ name: 'Joojeh Kebab', qty: 1 }, { name: 'Shirazi Salad', qty: 1 }] },
+                { customer: 'Fatemeh Jafari', status: 'delivered', date: '2026-07-25T13:00:00', items: [{ name: 'Gheymeh Stew', qty: 2 }, { name: 'Mineral Water', qty: 2 }] }
+            ];
+
+            const ordersToInsert = staticOrders.map(order => {
+                let totalPrice = 0;
+                const items = order.items.map(item => {
+                    const menuItem = menuMap[item.name];
+                    const itemTotal = menuItem.price * item.qty;
+                    totalPrice += itemTotal;
+                    return {
+                        menu_item_id: menuItem.id,
+                        quantity: item.qty,
+                        price: menuItem.price
+                    };
+                });
+
+                const orderDate = new Date(order.date);
+
+                return {
+                    customer_id: userMap[order.customer], // اصلاح شد: از user_id به customer_id
+                    items: items,
+                    total_amount: totalPrice,             // اصلاح شد: از total_price به total_amount
+                    status: order.status,
+                    createdAt: orderDate,                 // اصلاح شد برای سازگاری با مونگوس
+                    updatedAt: orderDate
+                };
+            });
+
+            await Order.insertMany(ordersToInsert);
+            console.log('Default orders added successfully.');
+        } else {
+            console.log('Orders already exist in database. skipping...');
+        }
+
+        // --- قدم ششم: اضافه کردن لاگ‌های سفارش (Order Logs) به‌صورت کاملاً استاتیک و خط‌به‌خط ---
+        const existingLogs = await OrderLog.countDocuments();
+        if (existingLogs === 0) {
+            console.log('Seeding Order Logs statically...');
+
+            // گرفتن نقشه کاربران برای دسترسی سریع به ID با اسم
+            const allUsers = await User.find();
+            const userMap = {};
+            allUsers.forEach(u => userMap[u.fullname] = u._id);
+
+            // گرفتن نقشه سفارش‌ها بر اساس ID مشتری و زمان دقیق سفارش
+            const allOrders = await Order.find();
+            const orderMap = {};
+            allOrders.forEach(o => {
+                const dateKey = new Date(o.createdAt).toISOString();
+                orderMap[`${o.customer_id}_${dateKey}`] = o._id;
+            });
+
+            // تابع کمکی ضدخطا برای پیدا کردن سریع ID سفارش در آرایه پایین
+            const getOrderId = (customerName, dateStr) => {
+                const userId = userMap[customerName];
+                const dateKey = new Date(dateStr).toISOString();
+                return orderMap[`${userId}_${dateKey}`];
+            };
+
+            // نقشه معادل‌سازی اسم‌های قراردادی به نام‌های واقعی کارکنان در دیتابیس
+            const staffNameMapping = {
+                'Kitchen Staff 1': 'Babak Rahimi',
+                'Kitchen Staff 2': 'Sina Mehdizadeh',
+                'Kitchen Staff 3': 'Farhad Kiani',
+                'Cashier 1': 'Shirin Golzar',
+                'Cashier 2': 'Nima Karimi'
+            };
+
+            // تعریف کاملاً استاتیک و خط‌به‌خط تمام لاگ‌ها (دقیقاً مثل ساختار staticOrders)
+            const staticLogs = [
+                // --- سفارش ۱: Ali Rezaee (Delivered) ---
+                { customer: 'Ali Rezaee', orderDate: '2026-07-20T13:15:00', old_status: null, new_status: 'pending', changed_by: 'Ali Rezaee' },
+                { customer: 'Ali Rezaee', orderDate: '2026-07-20T13:15:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 1' },
+                { customer: 'Ali Rezaee', orderDate: '2026-07-20T13:15:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 2' },
+                { customer: 'Ali Rezaee', orderDate: '2026-07-20T13:15:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 1' },
+
+                // --- سفارش ۲: Ali Rezaee (Delivered) ---
+                { customer: 'Ali Rezaee', orderDate: '2026-07-21T20:30:00', old_status: null, new_status: 'pending', changed_by: 'Ali Rezaee' },
+                { customer: 'Ali Rezaee', orderDate: '2026-07-21T20:30:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 2' },
+                { customer: 'Ali Rezaee', orderDate: '2026-07-21T20:30:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 3' },
+                { customer: 'Ali Rezaee', orderDate: '2026-07-21T20:30:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 2' },
+
+                // --- سفارش ۳: Ali Rezaee (Cancelled) ---
+                { customer: 'Ali Rezaee', orderDate: '2026-07-22T14:00:00', old_status: null, new_status: 'pending', changed_by: 'Ali Rezaee' },
+                { customer: 'Ali Rezaee', orderDate: '2026-07-22T14:00:00', old_status: 'pending', new_status: 'cancelled', changed_by: 'Ali Rezaee' },
+
+                // --- سفارش ۴: Maryam Ahmadi (Delivered) ---
+                { customer: 'Maryam Ahmadi', orderDate: '2026-07-20T14:20:00', old_status: null, new_status: 'pending', changed_by: 'Maryam Ahmadi' },
+                { customer: 'Maryam Ahmadi', orderDate: '2026-07-20T14:20:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 1' },
+                { customer: 'Maryam Ahmadi', orderDate: '2026-07-20T14:20:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 1' },
+                { customer: 'Maryam Ahmadi', orderDate: '2026-07-20T14:20:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 1' },
+
+                // --- سفارش ۵: Maryam Ahmadi (Cancelled) ---
+                { customer: 'Maryam Ahmadi', orderDate: '2026-07-22T19:20:00', old_status: null, new_status: 'pending', changed_by: 'Maryam Ahmadi' },
+                { customer: 'Maryam Ahmadi', orderDate: '2026-07-22T19:20:00', old_status: 'pending', new_status: 'cancelled', changed_by: 'Maryam Ahmadi' },
+
+                // --- سفارش ۶: Maryam Ahmadi (Delivered) ---
+                { customer: 'Maryam Ahmadi', orderDate: '2026-07-23T19:45:00', old_status: null, new_status: 'pending', changed_by: 'Maryam Ahmadi' },
+                { customer: 'Maryam Ahmadi', orderDate: '2026-07-23T19:45:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 3' },
+                { customer: 'Maryam Ahmadi', orderDate: '2026-07-23T19:45:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 2' },
+                { customer: 'Maryam Ahmadi', orderDate: '2026-07-23T19:45:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 2' },
+
+                // --- سفارش ۷: Reza Mohammadi (Delivered) ---
+                { customer: 'Reza Mohammadi', orderDate: '2026-07-21T12:30:00', old_status: null, new_status: 'pending', changed_by: 'Reza Mohammadi' },
+                { customer: 'Reza Mohammadi', orderDate: '2026-07-21T12:30:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 2' },
+                { customer: 'Reza Mohammadi', orderDate: '2026-07-21T12:30:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 1' },
+                { customer: 'Reza Mohammadi', orderDate: '2026-07-21T12:30:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 1' },
+
+                // --- سفارش ۸: Reza Mohammadi (Cancelled) ---
+                { customer: 'Reza Mohammadi', orderDate: '2026-07-24T21:10:00', old_status: null, new_status: 'pending', changed_by: 'Reza Mohammadi' },
+                { customer: 'Reza Mohammadi', orderDate: '2026-07-24T21:10:00', old_status: 'pending', new_status: 'cancelled', changed_by: 'Reza Mohammadi' },
+
+                // --- سفارش ۹: Sara Karimi (Delivered) ---
+                { customer: 'Sara Karimi', orderDate: '2026-07-20T15:00:00', old_status: null, new_status: 'pending', changed_by: 'Sara Karimi' },
+                { customer: 'Sara Karimi', orderDate: '2026-07-20T15:00:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 1' },
+                { customer: 'Sara Karimi', orderDate: '2026-07-20T15:00:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 3' },
+                { customer: 'Sara Karimi', orderDate: '2026-07-20T15:00:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 1' },
+
+                // --- سفارش ۱۰: Sara Karimi (Delivered) ---
+                { customer: 'Sara Karimi', orderDate: '2026-07-22T13:40:00', old_status: null, new_status: 'pending', changed_by: 'Sara Karimi' },
+                { customer: 'Sara Karimi', orderDate: '2026-07-22T13:40:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 2' },
+                { customer: 'Sara Karimi', orderDate: '2026-07-22T13:40:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 2' },
+                { customer: 'Sara Karimi', orderDate: '2026-07-22T13:40:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 2' },
+
+                // --- سفارش ۱۱: Sara Karimi (Cancelled) ---
+                { customer: 'Sara Karimi', orderDate: '2026-07-24T13:10:00', old_status: null, new_status: 'pending', changed_by: 'Sara Karimi' },
+                { customer: 'Sara Karimi', orderDate: '2026-07-24T13:10:00', old_status: 'pending', new_status: 'cancelled', changed_by: 'Sara Karimi' },
+
+                // --- سفارش ۱۲: Sara Karimi (Delivered) ---
+                { customer: 'Sara Karimi', orderDate: '2026-07-25T20:00:00', old_status: null, new_status: 'pending', changed_by: 'Sara Karimi' },
+                { customer: 'Sara Karimi', orderDate: '2026-07-25T20:00:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 3' },
+                { customer: 'Sara Karimi', orderDate: '2026-07-25T20:00:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 1' },
+                { customer: 'Sara Karimi', orderDate: '2026-07-25T20:00:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 1' },
+
+                // --- سفارش ۱۳: Omid Mousavi (Delivered) ---
+                { customer: 'Omid Mousavi', orderDate: '2026-07-21T21:30:00', old_status: null, new_status: 'pending', changed_by: 'Omid Mousavi' },
+                { customer: 'Omid Mousavi', orderDate: '2026-07-21T21:30:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 1' },
+                { customer: 'Omid Mousavi', orderDate: '2026-07-21T21:30:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 2' },
+                { customer: 'Omid Mousavi', orderDate: '2026-07-21T21:30:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 2' },
+
+                // --- سفارش ۱۴: Omid Mousavi (Delivered) ---
+                { customer: 'Omid Mousavi', orderDate: '2026-07-24T14:15:00', old_status: null, new_status: 'pending', changed_by: 'Omid Mousavi' },
+                { customer: 'Omid Mousavi', orderDate: '2026-07-24T14:15:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 2' },
+                { customer: 'Omid Mousavi', orderDate: '2026-07-24T14:15:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 3' },
+                { customer: 'Omid Mousavi', orderDate: '2026-07-24T14:15:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 1' },
+
+                // --- سفارش ۱۵: Negar Ghasemi (Delivered) ---
+                { customer: 'Negar Ghasemi', orderDate: '2026-07-20T19:00:00', old_status: null, new_status: 'pending', changed_by: 'Negar Ghasemi' },
+                { customer: 'Negar Ghasemi', orderDate: '2026-07-20T19:00:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 3' },
+                { customer: 'Negar Ghasemi', orderDate: '2026-07-20T19:00:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 3' },
+                { customer: 'Negar Ghasemi', orderDate: '2026-07-20T19:00:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 2' },
+
+                // --- سفارش ۱۶: Negar Ghasemi (Cancelled) ---
+                { customer: 'Negar Ghasemi', orderDate: '2026-07-23T13:20:00', old_status: null, new_status: 'pending', changed_by: 'Negar Ghasemi' },
+                { customer: 'Negar Ghasemi', orderDate: '2026-07-23T13:20:00', old_status: 'pending', new_status: 'cancelled', changed_by: 'Negar Ghasemi' },
+
+                // --- سفارش ۱۷: Hossein Hosseini (Cancelled) ---
+                { customer: 'Hossein Hosseini', orderDate: '2026-07-21T21:00:00', old_status: null, new_status: 'pending', changed_by: 'Hossein Hosseini' },
+                { customer: 'Hossein Hosseini', orderDate: '2026-07-21T21:00:00', old_status: 'pending', new_status: 'cancelled', changed_by: 'Hossein Hosseini' },
+
+                // --- سفارش ۱۸: Hossein Hosseini (Delivered) ---
+                { customer: 'Hossein Hosseini', orderDate: '2026-07-22T20:45:00', old_status: null, new_status: 'pending', changed_by: 'Hossein Hosseini' },
+                { customer: 'Hossein Hosseini', orderDate: '2026-07-22T20:45:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 1' },
+                { customer: 'Hossein Hosseini', orderDate: '2026-07-22T20:45:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 2' },
+                { customer: 'Hossein Hosseini', orderDate: '2026-07-22T20:45:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 1' },
+
+                // --- سفارش ۱۹: Hossein Hosseini (Delivered) ---
+                { customer: 'Hossein Hosseini', orderDate: '2026-07-25T15:30:00', old_status: null, new_status: 'pending', changed_by: 'Hossein Hosseini' },
+                { customer: 'Hossein Hosseini', orderDate: '2026-07-25T15:30:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 2' },
+                { customer: 'Hossein Hosseini', orderDate: '2026-07-25T15:30:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 1' },
+                { customer: 'Hossein Hosseini', orderDate: '2026-07-25T15:30:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 2' },
+
+                // --- سفارش ۲۰: Zahra Kazemi (Delivered) ---
+                { customer: 'Zahra Kazemi', orderDate: '2026-07-21T13:50:00', old_status: null, new_status: 'pending', changed_by: 'Zahra Kazemi' },
+                { customer: 'Zahra Kazemi', orderDate: '2026-07-21T13:50:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 3' },
+                { customer: 'Zahra Kazemi', orderDate: '2026-07-21T13:50:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 3' },
+                { customer: 'Zahra Kazemi', orderDate: '2026-07-21T13:50:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 1' },
+
+                // --- سفارش ۲۱: Zahra Kazemi (Delivered) ---
+                { customer: 'Zahra Kazemi', orderDate: '2026-07-24T19:15:00', old_status: null, new_status: 'pending', changed_by: 'Zahra Kazemi' },
+                { customer: 'Zahra Kazemi', orderDate: '2026-07-24T19:15:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 1' },
+                { customer: 'Zahra Kazemi', orderDate: '2026-07-24T19:15:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 2' },
+                { customer: 'Zahra Kazemi', orderDate: '2026-07-24T19:15:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 2' },
+
+                // --- سفارش ۲۲: Zahra Kazemi (Cancelled) ---
+                { customer: 'Zahra Kazemi', orderDate: '2026-07-25T20:15:00', old_status: null, new_status: 'pending', changed_by: 'Zahra Kazemi' },
+                { customer: 'Zahra Kazemi', orderDate: '2026-07-25T20:15:00', old_status: 'pending', new_status: 'cancelled', changed_by: 'Zahra Kazemi' },
+
+                // --- سفارش ۲۳: Mehdi Nouri (Delivered) ---
+                { customer: 'Mehdi Nouri', orderDate: '2026-07-20T21:00:00', old_status: null, new_status: 'pending', changed_by: 'Mehdi Nouri' },
+                { customer: 'Mehdi Nouri', orderDate: '2026-07-20T21:00:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 2' },
+                { customer: 'Mehdi Nouri', orderDate: '2026-07-20T21:00:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 3' },
+                { customer: 'Mehdi Nouri', orderDate: '2026-07-20T21:00:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 1' },
+
+                // --- سفارش ۲۴: Mehdi Nouri (Cancelled) ---
+                { customer: 'Mehdi Nouri', orderDate: '2026-07-23T20:10:00', old_status: null, new_status: 'pending', changed_by: 'Mehdi Nouri' },
+                { customer: 'Mehdi Nouri', orderDate: '2026-07-23T20:10:00', old_status: 'pending', new_status: 'cancelled', changed_by: 'Mehdi Nouri' },
+
+                // --- سفارش ۲۵: Fatemeh Jafari (Delivered) ---
+                { customer: 'Fatemeh Jafari', orderDate: '2026-07-22T14:30:00', old_status: null, new_status: 'pending', changed_by: 'Fatemeh Jafari' },
+                { customer: 'Fatemeh Jafari', orderDate: '2026-07-22T14:30:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 1' },
+                { customer: 'Fatemeh Jafari', orderDate: '2026-07-22T14:30:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 1' },
+                { customer: 'Fatemeh Jafari', orderDate: '2026-07-22T14:30:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 2' },
+
+                // --- سفارش ۲۶: Fatemeh Jafari (Cancelled) ---
+                { customer: 'Fatemeh Jafari', orderDate: '2026-07-23T15:45:00', old_status: null, new_status: 'pending', changed_by: 'Fatemeh Jafari' },
+                { customer: 'Fatemeh Jafari', orderDate: '2026-07-23T15:45:00', old_status: 'pending', new_status: 'cancelled', changed_by: 'Fatemeh Jafari' },
+
+                // --- سفارش ۲۷: Fatemeh Jafari (Delivered) ---
+                { customer: 'Fatemeh Jafari', orderDate: '2026-07-25T13:00:00', old_status: null, new_status: 'pending', changed_by: 'Fatemeh Jafari' },
+                { customer: 'Fatemeh Jafari', orderDate: '2026-07-25T13:00:00', old_status: 'pending', new_status: 'in_kitchen', changed_by: 'Kitchen Staff 3' },
+                { customer: 'Fatemeh Jafari', orderDate: '2026-07-25T13:00:00', old_status: 'in_kitchen', new_status: 'ready', changed_by: 'Kitchen Staff 2' },
+                { customer: 'Fatemeh Jafari', orderDate: '2026-07-25T13:00:00', old_status: 'ready', new_status: 'delivered', changed_by: 'Cashier 1' }
+            ];
+
+            // تبدیل آرایه استاتیک به آبجکت نهایی برای دیتابیس
+            const logsToInsert = staticLogs.map(log => {
+                const realName = staffNameMapping[log.changed_by] || log.changed_by;
+                return {
+                    order_id: getOrderId(log.customer, log.orderDate),
+                    old_status: log.old_status,
+                    new_status: log.new_status,
+                    changed_by: userMap[realName]
+                };
+            });
+
+            await OrderLog.insertMany(logsToInsert);
+            console.log('Default order logs added successfully.');
+        } else {
+            console.log('Order logs already exist in database. skipping...');
+        }
+        
+        process.exit(0);
+
+
+
     } catch (error) {
         console.error('Error during seeding:', error);
         process.exit(1);
