@@ -9,6 +9,8 @@ const menuItemRoutes = require('./routes/menuItemRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const kitchenRoutes = require('./routes/kitchenRoutes');
 const deliveryRoutes = require('./routes/deliveryRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,6 +44,8 @@ app.use('/api/menu-items', menuItemRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/kitchen', kitchenRoutes);
 app.use('/api/delivery', deliveryRoutes);
+app.use('/api/admin', adminRoutes);
+
 
 app.listen(PORT, () => {
   console.log('----------------------------------------------------');

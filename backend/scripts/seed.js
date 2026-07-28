@@ -106,27 +106,27 @@ async function seedDatabase() {
             const saladCat = await Category.findOne({ name: 'Salads & Desserts' });
 
             await MenuItem.insertMany([
-                { name: 'Special Pizza', price: 280000, stock_quantity: 50, category_id: fastFoodCat._id, is_available: true, image: '' },
-                { name: 'Pepperoni Pizza', price: 260000, stock_quantity: 50, category_id: fastFoodCat._id, is_available: true, image: '' },
-                { name: 'Meat and Mushroom Pizza', price: 290000, stock_quantity: 50, category_id: fastFoodCat._id, is_available: true, image: '' },
+                { name: 'Special Pizza', price: 280000, stock_quantity: 50, category_id: fastFoodCat._id, status: true, image_url: '' },
+                { name: 'Pepperoni Pizza', price: 260000, stock_quantity: 50, category_id: fastFoodCat._id, status: true, image_url: '' },
+                { name: 'Meat and Mushroom Pizza', price: 290000, stock_quantity: 50, category_id: fastFoodCat._id, status: true, image_url: '' },
 
-                { name: 'Koobideh Kebab', price: 320000, stock_quantity: 50, category_id: traditionalCat._id, is_available: true, image: '' },
-                { name: 'Joojeh Kebab', price: 270000, stock_quantity: 50, category_id: traditionalCat._id, is_available: true, image: '' },
-                { name: 'Ghormeh Sabzi', price: 220000, stock_quantity: 50, category_id: traditionalCat._id, is_available: true, image: '' },
-                { name: 'Gheymeh Stew', price: 210000, stock_quantity: 50, category_id: traditionalCat._id, is_available: true, image: '' },
+                { name: 'Koobideh Kebab', price: 320000, stock_quantity: 50, category_id: traditionalCat._id, status: true, image_url: '' },
+                { name: 'Joojeh Kebab', price: 270000, stock_quantity: 50, category_id: traditionalCat._id, status: true, image_url: '' },
+                { name: 'Ghormeh Sabzi', price: 220000, stock_quantity: 50, category_id: traditionalCat._id, status: true, image_url: '' },
+                { name: 'Gheymeh Stew', price: 210000, stock_quantity: 50, category_id: traditionalCat._id, status: true, image_url: '' },
 
-                { name: 'Special Burger', price: 230000, stock_quantity: 50, category_id: burgerCat._id, is_available: true, image: '' },
-                { name: 'Oven-Baked Ham Sandwich', price: 190000, stock_quantity: 50, category_id: burgerCat._id, is_available: true, image: '' },
+                { name: 'Special Burger', price: 230000, stock_quantity: 50, category_id: burgerCat._id, status: true, image_url: '' },
+                { name: 'Oven-Baked Ham Sandwich', price: 190000, stock_quantity: 50, category_id: burgerCat._id, status: true, image_url: '' },
 
-                { name: 'French Fries', price: 90000, stock_quantity: 100, category_id: appetizerCat._id, is_available: true, image: '' },
-                { name: 'Garlic Bread', price: 110000, stock_quantity: 100, category_id: appetizerCat._id, is_available: true, image: '' },
+                { name: 'French Fries', price: 90000, stock_quantity: 100, category_id: appetizerCat._id, status: true, image_url: '' },
+                { name: 'Garlic Bread', price: 110000, stock_quantity: 100, category_id: appetizerCat._id, status: true, image_url: '' },
 
-                { name: 'Soda', price: 30000, stock_quantity: 150, category_id: beverageCat._id, is_available: true, image: '' },
-                { name: 'Persian Doogh', price: 35000, stock_quantity: 150, category_id: beverageCat._id, is_available: true, image: '' },
-                { name: 'Mineral Water', price: 15000, stock_quantity: 200, category_id: beverageCat._id, is_available: true, image: '' },
+                { name: 'Soda', price: 30000, stock_quantity: 150, category_id: beverageCat._id, status: true, image_url: '' },
+                { name: 'Persian Doogh', price: 35000, stock_quantity: 150, category_id: beverageCat._id, status: true, image_url: '' },
+                { name: 'Mineral Water', price: 15000, stock_quantity: 200, category_id: beverageCat._id, status: true, image_url: '' },
 
-                { name: 'Caesar Salad', price: 180000, stock_quantity: 40, category_id: saladCat._id, is_available: true, image: '' },
-                { name: 'Shirazi Salad', price: 70000, stock_quantity: 60, category_id: saladCat._id, is_available: true, image: '' }
+                { name: 'Caesar Salad', price: 180000, stock_quantity: 40, category_id: saladCat._id, status: true, image_url: '' },
+                { name: 'Shirazi Salad', price: 70000, stock_quantity: 60, category_id: saladCat._id, status: true, image_url: '' }
             ]);
             console.log('Default menu items added successfully.');
 

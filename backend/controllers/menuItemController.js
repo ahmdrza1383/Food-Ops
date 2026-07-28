@@ -122,7 +122,7 @@ exports.createMenuItem = async (req, res) => {
 exports.updateMenuItem = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, price, category_id, is_available } = req.body;
+    const { name, description, price, category_id, status } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
