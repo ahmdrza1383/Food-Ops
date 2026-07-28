@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const path = require('path');
 const authRoutes = require('./routes/authRoutes');
 const sanitize = require('./middlewares/sanitize'); 
+require('dotenv').config();
 
 const app = express();
 const PORT = 3000;
