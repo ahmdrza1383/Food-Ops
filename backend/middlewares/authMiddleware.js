@@ -61,3 +61,16 @@ exports.customerOnly = (req, res, next) => {
   }
   next();
 };
+
+exports.cashierOrAdmin = (req, res, next) => {
+  const roleName = req.user?.role_id?.name?.toLowerCase();
+  const allowedRoles = ['admin', 'cashier'];
+
+  if (!allowedRoles.includes(roleName)) {
+    return res.status(403).json({
+      status: 'fail',
+      message: 'این بخش فقط مخصوص صندوق‌دار و مدیر سیستم است.'
+    });
+  }
+  next();
+};

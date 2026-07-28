@@ -398,3 +398,62 @@ exports.readyOrder = async (req, res) => {
         });
     }
 };
+
+// @desc    ثبت تحویل سفارش به مشتری
+// @route   PATCH /api/orders/:id/deliver
+// @access  Private (Cashier / Admin)
+exports.deliverOrder = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'شناسه سفارش معتبر نیست.'
+            });
+        }
+
+        const order = await Order.findById(id);
+
+        if (!order) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'سفارشی با این شناسه یافت نشد.'
+            });
+        }
+
+        if (order.status !== 'ready_for_delivery') {
+            return res.status(400).json({
+                status: 'fail',
+                message: `سفارش در وضعیت "${order.status}" قرار دارد و آماده تحویل نیست.`
+            });
+        }
+
+        const oldStatus = order.status;
+        order.status = 'delivered';
+        await order.save();
+
+        // ثبت لاگ تحویل سفارش
+        await OrderLog.create({
+            order_id: order._id,
+            old_status: oldStatus,
+            new_status: 'delivered',
+            changed_by: req.user._id,
+            action_type: 'ORDER_DELIVERED'
+        });
+
+        res.status(200).json({
+            status: 'success',
+            message: 'سفارش با موفقیت تحویل داده شد.',
+            data: {
+                order
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'خطا در ثبت تحویل سفارش.',
+            error: error.message
+        });
+    }
+};
