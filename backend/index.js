@@ -4,6 +4,7 @@ const path = require('path');
 const authRoutes = require('./routes/authRoutes');
 const sanitize = require('./middlewares/sanitize'); 
 const categoryRoutes = require('./routes/categoryRoutes');
+const menuItemRoutes = require('./routes/menuItemRoutes');
 require('dotenv').config();
 
 const app = express();
@@ -34,6 +35,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/menu-items', menuItemRoutes);
 
 app.listen(PORT, () => {
   console.log('----------------------------------------------------');

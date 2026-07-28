@@ -1,5 +1,8 @@
 const Category = require('../models/Category');
 
+// @desc    Get all categories
+// @route   GET /api/categories
+// @access  Public
 exports.getAllCategories = async (req, res) => {
   try {
     const categories = await Category.find().sort({ createdAt: -1 });
@@ -20,7 +23,9 @@ exports.getAllCategories = async (req, res) => {
   }
 };
 
-
+// @desc    Create a new category
+// @route   POST /api/categories
+// @access  Private/Admin
 exports.createCategory = async (req, res) => {
   try {
     const { name, is_active } = req.body;
@@ -54,7 +59,9 @@ exports.createCategory = async (req, res) => {
   }
 };
 
-
+// @desc    Update a category
+// @route   PATCH /api/categories/:id
+// @access  Private/Admin
 exports.updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -99,7 +106,9 @@ exports.updateCategory = async (req, res) => {
   }
 };
 
-
+// @desc    Delete a category
+// @route   DELETE /api/categories/:id
+// @access  Private/Admin
 exports.deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
