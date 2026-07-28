@@ -1,13 +1,173 @@
 <!doctype html>
-<html lang="en">
+<html lang="fa" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Food Ops</title>
+    <title>FoodOps | آنلاین غذا سفارش دهید</title>
+    <link rel="stylesheet" href="/src/style.css" />
   </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+  <body class="bg-gray-50 text-slate-800 min-h-screen flex flex-col">
+    <!-- ۱. هدر سایت -->
+    <header
+      class="sticky top-0 z-40 bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100"
+    >
+      <div
+        class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between"
+      >
+        <!-- لوگو -->
+        <a
+          href="/"
+          class="flex items-center gap-2 font-bold text-2xl text-primary"
+        >
+          <span>🍔</span> FoodOps
+        </a>
+
+        <!-- بخش کاربر و سبد خرید -->
+        <div class="flex items-center gap-4">
+          <!-- منوی کاربر (توسط JS پر می‌شود) -->
+          <div id="user-menu" class="flex items-center gap-2">
+            <a
+              href="/src/pages/auth/login.html"
+              class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-primary"
+              >ورود</a
+            >
+            <a
+              href="/src/pages/auth/register.html"
+              class="px-4 py-2 text-sm font-medium bg-primary text-white rounded-xl hover:bg-primary-hover transition"
+              >ثبت‌نام</a
+            >
+          </div>
+
+          <!-- دکمه سبد خرید -->
+          <button
+            id="cart-btn"
+            class="relative p-2.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition"
+          >
+            <svg
+              class="w-6 h-6 text-gray-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+              />
+            </svg>
+            <span
+              id="cart-count"
+              class="absolute -top-1 -right-1 bg-primary text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center"
+              >۰</span
+            >
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- بدنه اصلی -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 py-6 w-full">
+      <!-- ۲. هیرو سکشن + جستجو -->
+      <section
+        class="bg-gradient-to-l from-orange-500 to-amber-500 rounded-3xl p-6 md:p-10 text-white mb-8 shadow-lg"
+      >
+        <h1 class="text-2xl md:text-4xl font-extrabold mb-3">
+          سفارش سریع و لذت‌بخش غذا
+        </h1>
+        <p class="text-orange-100 text-sm md:text-base mb-6">
+          منوی امروز را بررسی کنید و آنلاین سفارش دهید.
+        </p>
+
+        <!-- باکس جستجو -->
+        <div class="relative max-w-md">
+          <input
+            id="search-input"
+            type="text"
+            placeholder="جستجوی نام غذا..."
+            class="w-full pl-4 pr-10 py-3 rounded-2xl text-slate-800 text-sm focus:outline-none shadow-sm"
+          />
+          <span class="absolute right-3 top-3.5 text-gray-400">🔍</span>
+        </div>
+      </section>
+
+      <!-- ۳. تب‌های دسته‌بندی -->
+      <section class="mb-8">
+        <div
+          id="categories-list"
+          class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none"
+        >
+          <!-- توسط JS پر می‌شود -->
+          <button
+            class="px-5 py-2.5 rounded-xl bg-primary text-white font-medium text-sm whitespace-nowrap shadow-sm"
+          >
+            همه
+          </button>
+        </div>
+      </section>
+
+      <!-- ۴. گرید منوی غذاها -->
+      <section>
+        <div
+          id="menu-grid"
+          class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+        >
+          <!-- کارت‌های غذا توسط JS رندر می‌شوند -->
+        </div>
+      </section>
+    </main>
+
+    <!-- ۵. کشوی سبد خرید (Cart Drawer) -->
+<div id="cart-drawer" class="fixed inset-0 z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
+  <!-- Backdrop (پس‌زمینه تاریک) -->
+  <div id="cart-backdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+  <!-- پنل کشویی (از سمت چپ خارج از صفحه شروع می‌شود) -->
+  <div id="cart-panel" class="fixed inset-y-0 left-0 w-full max-w-md bg-white shadow-2xl transition-transform duration-300 transform -translate-x-full flex flex-col z-10">
+    <div class="p-4 border-b flex items-center justify-between bg-gray-50">
+      <h2 class="font-bold text-lg flex items-center gap-2 text-slate-800">🛒 سبد خرید شما</h2>
+      <button id="close-cart-btn" class="p-2 text-gray-500 hover:text-rose-500 hover:bg-gray-200 rounded-xl transition">✕</button>
+    </div>
+
+    <!-- لیست آیتم‌ها -->
+    <div id="cart-items" class="flex-grow overflow-y-auto p-4 space-y-4">
+      <!-- توسط JS پر می‌شود -->
+    </div>
+
+    <!-- بخش کد تخفیف و فاکتور -->
+    <div class="p-4 border-t bg-gray-50 space-y-3">
+      <div class="flex gap-2">
+        <input id="discount-input" type="text" placeholder="کد تخفیف" class="flex-grow px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary" />
+        <button id="apply-discount-btn" class="px-4 py-2 bg-slate-800 text-white text-sm font-medium rounded-xl hover:bg-slate-700 transition">اعمال</button>
+      </div>
+
+      <div class="flex justify-between text-sm text-gray-600">
+        <span>مبلغ کل:</span>
+        <span id="cart-subtotal">۰ تومان</span>
+      </div>
+      <div id="discount-row" class="flex justify-between text-sm text-emerald-600 hidden">
+        <span>تخفیف:</span>
+        <span id="cart-discount">۰ تومان</span>
+      </div>
+      <div class="flex justify-between font-bold text-base border-t pt-2 text-slate-800">
+        <span>قابل پرداخت:</span>
+        <span id="cart-total" class="text-primary">۰ تومان</span>
+      </div>
+
+      <button id="checkout-btn" class="w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover transition shadow-lg shadow-orange-500/20">
+        ثبت نهایی سفارش
+      </button>
+    </div>
+  </div>
+</div>
+
+    <!-- ۶. فوتر -->
+    <footer
+      class="bg-white border-t mt-12 py-6 text-center text-sm text-gray-500"
+    >
+      <p>سامانه مدیریت سفارشات FoodOps © ۲۰۲۶</p>
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
