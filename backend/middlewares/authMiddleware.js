@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Role = require('../models/Role'); 
 
 exports.protect = async (req, res, next) => {
     try {
@@ -32,4 +33,33 @@ exports.authorize = (...roles) => {
         }
         next();
     };
+};
+
+
+exports.admin = async (req, res, next) => {
+  try {
+    if (!req.user || !req.user.role_id) {
+      return res.status(403).json({
+        status: 'fail',
+        message: 'دسترسی غیرمجاز. اطلاعات نقش کاربر یافت نشد.'
+      });
+    }
+
+    const userRole = await Role.findById(req.user.role_id);
+
+    if (!userRole || (userRole.name !== 'Admin' && userRole.name !== 'admin')) {
+      return res.status(403).json({
+        status: 'fail',
+        message: 'دسترسی محدود شده است! فقط مدیران سیستم می‌توانند این کار را انجام دهند.'
+      });
+    }
+
+    next();
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'خطا در بررسی دسترسی کاربر.',
+      error: error.message
+    });
+  }
 };
