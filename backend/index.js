@@ -1,14 +1,15 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
 const authRoutes = require('./routes/authRoutes');
-const sanitize = require('./middlewares/sanitize'); 
+const sanitize = require('./middlewares/sanitize');
 const categoryRoutes = require('./routes/categoryRoutes');
 const menuItemRoutes = require('./routes/menuItemRoutes');
-require('dotenv').config();
+const orderRoutes = require('./routes/orderRoutes');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
@@ -16,7 +17,7 @@ app.use(sanitize);
 
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
-const MONGO_URI = 'mongodb://admin:password@localhost:27017/foodops?authSource=admin';
+const MONGO_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI)
   .then(() => {
@@ -27,15 +28,16 @@ mongoose.connect(MONGO_URI)
   });
 
 app.get('/', (req, res) => {
-  res.status(200).json({ 
-    status: 'success', 
-    message: 'Food-Ops API Server is running successfully!' 
+  res.status(200).json({
+    status: 'success',
+    message: 'Food-Ops API Server is running successfully!'
   });
 });
 
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/menu-items', menuItemRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.listen(PORT, () => {
   console.log('----------------------------------------------------');

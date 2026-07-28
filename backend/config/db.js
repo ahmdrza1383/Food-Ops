@@ -1,3 +1,6 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
 const mongoose = require('mongoose');
 
 const Role = require('../models/Role');
@@ -9,7 +12,7 @@ const OrderLog = require('../models/OrderLog');
 const Discount = require('../models/Discount');
 const SystemSetting = require('../models/SystemSetting');
 
-const MONGO_URI = 'mongodb://admin:password@localhost:27017/foodops?authSource=admin';
+const MONGO_URI = process.env.MONGO_URI;
 
 async function initializeDatabase() {
     try {
