@@ -2,8 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
-const authRoutes = require('./routes/authRoutes');
 const sanitize = require('./middlewares/sanitize');
+const { errorHandler } = require('./middlewares/errorHandler');
+const authRoutes = require('./routes/authRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const menuItemRoutes = require('./routes/menuItemRoutes');
 const orderRoutes = require('./routes/orderRoutes');
@@ -45,6 +46,17 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/kitchen', kitchenRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/admin', adminRoutes);
+
+// 404 Handler - Route Not Found
+app.use((req, res, next) => {
+  const err = new Error(`مسیر ${req.originalUrl} یافت نشد.`);
+  err.status = 404;
+  next(err);
+});
+
+// Global Error Handler - Must be last middleware
+app.use(errorHandler);
+
 
 
 app.listen(PORT, () => {
