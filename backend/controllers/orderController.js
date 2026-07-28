@@ -2,274 +2,399 @@ const Order = require('../models/Order');
 const MenuItem = require('../models/MenuItem');
 const Discount = require('../models/Discount');
 const OrderLog = require('../models/OrderLog');
+const Role = require('../models/Role');
 const mongoose = require('mongoose');
 
 // @desc    ثبت سفارش جدید توسط مشتری
 // @route   POST /api/orders
 // @access  Private (Customer)
 exports.createOrder = async (req, res) => {
-  try {
-    const { items, discount_code } = req.body;
+    try {
+        const { items, discount_code } = req.body;
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({
-        status: 'fail',
-        message: 'سبد خرید نمی‌تواند خالی باشد.'
-      });
-    }
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'سبد خرید نمی‌تواند خالی باشد.'
+            });
+        }
 
-    let totalPrice = 0;
-    const orderItems = [];
-    const itemsToUpdateStock = [];
+        let totalPrice = 0;
+        const orderItems = [];
+        const itemsToUpdateStock = [];
 
-    // ۱. بررسی آیتم‌ها، موجودی انبار و محاسبه قیمت
-    for (const item of items) {
-      const menuItem = await MenuItem.findById(item.menu_item_id);
+        // ۱. بررسی آیتم‌ها، موجودی انبار و محاسبه قیمت
+        for (const item of items) {
+            const menuItem = await MenuItem.findById(item.menu_item_id);
 
-      if (!menuItem) {
-        return res.status(404).json({
-          status: 'fail',
-          message: `آیتم با شناسه ${item.menu_item_id} یافت نشد.`
+            if (!menuItem) {
+                return res.status(404).json({
+                    status: 'fail',
+                    message: `آیتم با شناسه ${item.menu_item_id} یافت نشد.`
+                });
+            }
+
+            if (!menuItem.status || menuItem.stock_quantity < item.quantity) {
+                return res.status(400).json({
+                    status: 'fail',
+                    message: `موجودی آیتم "${menuItem.name}" کافی نیست یا غیرفعال است.`
+                });
+            }
+
+            const itemTotalPrice = menuItem.price * item.quantity;
+            totalPrice += itemTotalPrice;
+
+            orderItems.push({
+                menu_item_id: menuItem._id,
+                quantity: item.quantity,
+                unit_price: menuItem.price
+            });
+
+            itemsToUpdateStock.push({
+                menuItem,
+                quantity: item.quantity
+            });
+        }
+
+        let finalPrice = totalPrice;
+        let discountCodeId = null;
+
+        // ۲. بررسی و اعمال کد تخفیف در صورت ارسال
+        if (discount_code) {
+            const discount = await Discount.findOne({
+                code: discount_code,
+                is_active: true
+            });
+
+            if (!discount) {
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'کد تخفیف وارد شده معتبر نیست.'
+                });
+            }
+
+            if (new Date(discount.expiration_date) < new Date()) {
+                return res.status(400).json({
+                    status: 'fail',
+                    message: 'کد تخفیف منقضی شده است.'
+                });
+            }
+
+            discountCodeId = discount._id;
+            const discountAmount = (totalPrice * discount.discount_percent) / 100;
+            finalPrice = totalPrice - discountAmount;
+        }
+
+        // ۳. کسر موجودی از انبار
+        for (const item of itemsToUpdateStock) {
+            item.menuItem.stock_quantity -= item.quantity;
+            await item.menuItem.save();
+        }
+
+        // ۴. ایجاد سفارش در دیتابیس
+        const newOrder = await Order.create({
+            customer_id: req.user._id,
+            items: orderItems,
+            total_price: totalPrice,
+            discount_code_id: discountCodeId,
+            final_price: finalPrice,
+            status: 'registered'
         });
-      }
 
-      if (!menuItem.status || menuItem.stock_quantity < item.quantity) {
-        return res.status(400).json({
-          status: 'fail',
-          message: `موجودی آیتم "${menuItem.name}" کافی نیست یا غیرفعال است.`
+        // ۵. ثبت لاگ ایجاد سفارش
+        await OrderLog.create({
+            order_id: newOrder._id,
+            old_status: null,
+            new_status: 'registered',
+            changed_by: req.user._id,
+            action_type: 'ORDER_CREATED'
         });
-      }
 
-      const itemTotalPrice = menuItem.price * item.quantity;
-      totalPrice += itemTotalPrice;
-
-      orderItems.push({
-        menu_item_id: menuItem._id,
-        quantity: item.quantity,
-        unit_price: menuItem.price
-      });
-
-      itemsToUpdateStock.push({
-        menuItem,
-        quantity: item.quantity
-      });
-    }
-
-    let finalPrice = totalPrice;
-    let discountCodeId = null;
-
-    // ۲. بررسی و اعمال کد تخفیف در صورت ارسال
-    if (discount_code) {
-      const discount = await Discount.findOne({
-        code: discount_code,
-        is_active: true
-      });
-
-      if (!discount) {
-        return res.status(400).json({
-          status: 'fail',
-          message: 'کد تخفیف وارد شده معتبر نیست.'
+        res.status(201).json({
+            status: 'success',
+            message: 'سفارش با موفقیت ثبت شد.',
+            data: {
+                order: newOrder
+            }
         });
-      }
 
-      if (new Date(discount.expiration_date) < new Date()) {
-        return res.status(400).json({
-          status: 'fail',
-          message: 'کد تخفیف منقضی شده است.'
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'خطا در ثبت سفارش.',
+            error: error.message
         });
-      }
-
-      discountCodeId = discount._id;
-      const discountAmount = (totalPrice * discount.discount_percent) / 100;
-      finalPrice = totalPrice - discountAmount;
     }
-
-    // ۳. کسر موجودی از انبار
-    for (const item of itemsToUpdateStock) {
-      item.menuItem.stock_quantity -= item.quantity;
-      await item.menuItem.save();
-    }
-
-    // ۴. ایجاد سفارش در دیتابیس
-    const newOrder = await Order.create({
-      customer_id: req.user._id,
-      items: orderItems,
-      total_price: totalPrice,
-      discount_code_id: discountCodeId,
-      final_price: finalPrice,
-      status: 'registered'
-    });
-
-    // ۵. ثبت لاگ ایجاد سفارش
-    await OrderLog.create({
-      order_id: newOrder._id,
-      old_status: null,
-      new_status: 'registered',
-      changed_by: req.user._id,
-      action_type: 'ORDER_CREATED'
-    });
-
-    res.status(201).json({
-      status: 'success',
-      message: 'سفارش با موفقیت ثبت شد.',
-      data: {
-        order: newOrder
-      }
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'خطا در ثبت سفارش.',
-      error: error.message
-    });
-  }
 };
 
 // @desc    دریافت لیست سفارش‌های کاربر فعلی
 // @route   GET /api/orders/me
 // @access  Private (Customer)
 exports.getMyOrders = async (req, res) => {
-  try {
-    const orders = await Order.find({ customer_id: req.user._id })
-      .populate('items.menu_item_id', 'name price image_url')
-      .sort({ createdAt: -1 });
+    try {
+        const orders = await Order.find({ customer_id: req.user._id })
+            .populate('items.menu_item_id', 'name price image_url')
+            .sort({ createdAt: -1 });
 
-    res.status(200).json({
-      status: 'success',
-      results: orders.length,
-      data: {
-        orders
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'خطا در دریافت سفارش‌ها.',
-      error: error.message
-    });
-  }
+        res.status(200).json({
+            status: 'success',
+            results: orders.length,
+            data: {
+                orders
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'خطا در دریافت سفارش‌ها.',
+            error: error.message
+        });
+    }
 };
 
 // @desc    دریافت جزئیات یک سفارش
 // @route   GET /api/orders/:id
-// @access  Private
+// @access  Private (Owner Customer or Staff/Admin)
 exports.getOrderById = async (req, res) => {
-  try {
-    const { id } = req.params;
+    try {
+        const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        status: 'fail',
-        message: 'شناسه سفارش معتبر نیست.'
-      });
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'شناسه سفارش معتبر نیست.'
+            });
+        }
+
+        const order = await Order.findById(id)
+            .populate('items.menu_item_id', 'name price image_url')
+            .populate('customer_id', 'fullname phone_number');
+
+        if (!order) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'سفارشی با این شناسه یافت نشد.'
+            });
+        }
+
+        // ۱. دریافت نقش کاربر لاگین‌شده از روی role_id
+        const userRole = await Role.findById(req.user.role_id);
+        const roleName = userRole ? userRole.name : '';
+
+        const isStaff = ['Admin', 'admin', 'Kitchen Staff', 'Cashier'].includes(roleName);
+        const isOwner = order.customer_id._id.toString() === req.user._id.toString();
+
+        if (!isStaff && !isOwner) {
+            return res.status(403).json({
+                status: 'fail',
+                message: 'شما اجازه دسترسی و مشاهده این سفارش را ندارید.'
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                order
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'خطا در دریافت جزئیات سفارش.',
+            error: error.message
+        });
     }
-
-    const order = await Order.findById(id)
-      .populate('items.menu_item_id', 'name price image_url')
-      .populate('customer_id', 'fullname phone_number');
-
-    if (!order) {
-      return res.status(404).json({
-        status: 'fail',
-        message: 'سفارشی با این شناسه یافت نشد.'
-      });
-    }
-
-    // بررسی دسترسی: فقط صاحب سفارش یا ادمین اجازه دیدن دارد
-    if (order.customer_id._id.toString() !== req.user._id.toString() && req.user.role !== 'Admin') {
-      return res.status(403).json({
-        status: 'fail',
-        message: 'شما اجازه دسترسی به این سفارش را ندارید.'
-      });
-    }
-
-    res.status(200).json({
-      status: 'success',
-      data: {
-        order
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'خطا در دریافت جزئیات سفارش.',
-      error: error.message
-    });
-  }
 };
 
 // @desc    لغو سفارش توسط مشتری
 // @route   PATCH /api/orders/:id/cancel
 // @access  Private (Customer)
 exports.cancelOrder = async (req, res) => {
-  try {
-    const { id } = req.params;
+    try {
+        const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        status: 'fail',
-        message: 'شناسه سفارش معتبر نیست.'
-      });
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'شناسه سفارش معتبر نیست.'
+            });
+        }
+
+        const order = await Order.findById(id);
+
+        if (!order) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'سفارشی با این شناسه یافت نشد.'
+            });
+        }
+
+        // بررسی مالکیت سفارش
+        if (order.customer_id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                status: 'fail',
+                message: 'شما اجازه لغو این سفارش را ندارید.'
+            });
+        }
+
+        // بررسی امکان لغو (فقط در مرحله 'registered' مجاز است)
+        if (order.status !== 'registered') {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'سفارش وارد مرحله آماده‌سازی شده و امکان لغو آن وجود ندارد.'
+            });
+        }
+
+        const oldStatus = order.status;
+        order.status = 'canceled';
+        await order.save();
+
+        // بازگرداندن موجودی کالاها به انبار
+        for (const item of order.items) {
+            await MenuItem.findByIdAndUpdate(item.menu_item_id, {
+                $inc: { stock_quantity: item.quantity }
+            });
+        }
+
+        // ثبت لاگ لغو سفارش
+        await OrderLog.create({
+            order_id: order._id,
+            old_status: oldStatus,
+            new_status: 'canceled',
+            changed_by: req.user._id,
+            action_type: 'ORDER_CANCELED'
+        });
+
+        res.status(200).json({
+            status: 'success',
+            message: 'سفارش با موفقیت لغو شد.',
+            data: {
+                order
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'خطا در لغو سفارش.',
+            error: error.message
+        });
     }
+};
 
-    const order = await Order.findById(id);
+// @desc    تغییر وضعیت سفارش به در حال آماده‌سازی
+// @route   PATCH /api/orders/:id/start
+// @access  Private (Kitchen Staff / Admin)
+exports.startOrder = async (req, res) => {
+    try {
+        const { id } = req.params;
 
-    if (!order) {
-      return res.status(404).json({
-        status: 'fail',
-        message: 'سفارشی با این شناسه یافت نشد.'
-      });
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'شناسه سفارش معتبر نیست.'
+            });
+        }
+
+        const order = await Order.findById(id);
+
+        if (!order) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'سفارشی با این شناسه یافت نشد.'
+            });
+        }
+
+        if (order.status !== 'registered') {
+            return res.status(400).json({
+                status: 'fail',
+                message: `سفارش در وضعیت "${order.status}" قرار دارد و قابل شروع نیست.`
+            });
+        }
+
+        const oldStatus = order.status;
+        order.status = 'preparing';
+        await order.save();
+
+        // ثبت لاگ تغییر وضعیت
+        await OrderLog.create({
+            order_id: order._id,
+            old_status: oldStatus,
+            new_status: 'preparing',
+            changed_by: req.user._id,
+            action_type: 'STATUS_UPDATED'
+        });
+
+        res.status(200).json({
+            status: 'success',
+            message: 'آماده‌سازی سفارش آغاز شد.',
+            data: {
+                order
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'خطا در تغییر وضعیت سفارش.',
+            error: error.message
+        });
     }
+};
 
-    // بررسی مالکیت سفارش
-    if (order.customer_id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        status: 'fail',
-        message: 'شما اجازه لغو این سفارش را ندارید.'
-      });
+// @desc    تغییر وضعیت سفارش به آماده تحویل
+// @route   PATCH /api/orders/:id/ready
+// @access  Private (Kitchen Staff / Admin)
+exports.readyOrder = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'شناسه سفارش معتبر نیست.'
+            });
+        }
+
+        const order = await Order.findById(id);
+
+        if (!order) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'سفارشی با این شناسه یافت نشد.'
+            });
+        }
+
+        if (order.status !== 'preparing') {
+            return res.status(400).json({
+                status: 'fail',
+                message: `امکان تغییر وضعیت سفارش از "${order.status}" به آماده تحویل وجود ندارد.`
+            });
+        }
+
+        const oldStatus = order.status;
+        order.status = 'ready_for_delivery';
+        await order.save();
+
+        // ثبت لاگ تغییر وضعیت
+        await OrderLog.create({
+            order_id: order._id,
+            old_status: oldStatus,
+            new_status: 'ready_for_delivery',
+            changed_by: req.user._id,
+            action_type: 'STATUS_UPDATED'
+        });
+
+        res.status(200).json({
+            status: 'success',
+            message: 'سفارش با موفقیت آماده تحویل شد.',
+            data: {
+                order
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'خطا در تغییر وضعیت سفارش.',
+            error: error.message
+        });
     }
-
-    // بررسی امکان لغو (فقط در مرحله 'registered' مجاز است)
-    if (order.status !== 'registered') {
-      return res.status(400).json({
-        status: 'fail',
-        message: 'سفارش وارد مرحله آماده‌سازی شده و امکان لغو آن وجود ندارد.'
-      });
-    }
-
-    const oldStatus = order.status;
-    order.status = 'canceled';
-    await order.save();
-
-    // بازگرداندن موجودی کالاها به انبار
-    for (const item of order.items) {
-      await MenuItem.findByIdAndUpdate(item.menu_item_id, {
-        $inc: { stock_quantity: item.quantity }
-      });
-    }
-
-    // ثبت لاگ لغو سفارش
-    await OrderLog.create({
-      order_id: order._id,
-      old_status: oldStatus,
-      new_status: 'canceled',
-      changed_by: req.user._id,
-      action_type: 'ORDER_CANCELED'
-    });
-
-    res.status(200).json({
-      status: 'success',
-      message: 'سفارش با موفقیت لغو شد.',
-      data: {
-        order
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'خطا در لغو سفارش.',
-      error: error.message
-    });
-  }
 };

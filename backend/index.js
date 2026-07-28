@@ -7,6 +7,7 @@ const sanitize = require('./middlewares/sanitize');
 const categoryRoutes = require('./routes/categoryRoutes');
 const menuItemRoutes = require('./routes/menuItemRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const kitchenRoutes = require('./routes/kitchenRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -38,6 +39,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/menu-items', menuItemRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/kitchen', kitchenRoutes);
 
 app.listen(PORT, () => {
   console.log('----------------------------------------------------');
