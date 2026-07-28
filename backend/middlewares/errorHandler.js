@@ -1,7 +1,3 @@
---- backend / middlewares / errorHandler.js(原始)
-
-
-+++ backend / middlewares / errorHandler.js(修改后)
 // Error Handler Middleware - Handles all errors across the API
 const errorHandler = (err, req, res, next) => {
     let error = { ...err };
