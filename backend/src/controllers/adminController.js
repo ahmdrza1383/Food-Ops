@@ -94,21 +94,39 @@ exports.getDailyReport = async (req, res) => {
     try {
         const { days = 7 } = req.query;
         let numDays = parseInt(days);
+        if (isNaN(numDays) || numDays < 1) numDays = 7;
+        numDays = Math.min(numDays, 90);
 
-        // اعتبارسنجی تعداد روزها
-        if (isNaN(numDays) || numDays < 1) {
-            numDays = 7;
-        }
-        numDays = Math.min(numDays, 90); 
-
-        const startDate = new Date();
+        // محاسبه تاریخ‌های شروع و پایان با استفاده از UTC
+        const now = new Date();
+        const startDate = new Date(now);
         startDate.setDate(startDate.getDate() - numDays);
-        startDate.setHours(0, 0, 0, 0);
+        startDate.setUTCHours(0, 0, 0, 0);
 
-        const endDate = new Date();
-        endDate.setHours(23, 59, 59, 999);
+        const endDate = new Date(now);
+        endDate.setUTCHours(23, 59, 59, 999);
 
-        // استفاده از aggregation برای گزارش دقیق‌تر
+        // ۱. محاسبه مجموع کل درآمد و سفارشات (مستقیماً از دیتابیس)
+        const summaryAggregation = await Order.aggregate([
+            {
+                $match: {
+                    status: 'delivered',
+                    createdAt: { $gte: startDate, $lte: endDate }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total_revenue: { $sum: '$final_price' },
+                    total_orders: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const totalRevenue = summaryAggregation[0]?.total_revenue || 0;
+        const totalOrders = summaryAggregation[0]?.total_orders || 0;
+
+        // ۲. آمار روزانه برای نمودار (با فرمت تاریخ UTC یکسان با دیتابیس)
         const dailyStats = await Order.aggregate([
             {
                 $match: {
@@ -118,72 +136,45 @@ exports.getDailyReport = async (req, res) => {
             },
             {
                 $group: {
-                    _id: {
-                        $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
-                    },
+                    _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
                     total_sales: { $sum: '$final_price' },
-                    order_count: { $sum: 1 },
-                    avg_order_value: { $avg: '$final_price' }
+                    order_count: { $sum: 1 }
                 }
             },
-            {
-                $sort: { _id: -1 }
-            }
+            { $sort: { _id: -1 } }
         ]);
 
-        // ایجاد ساختار کامل برای تمام روزها
+        // ۳. ایجاد نقشه روزهای خالی برای نمایش کامل نمودار
         const dailyDataMap = {};
         for (let i = 0; i < numDays; i++) {
-            const date = new Date();
+            const date = new Date(now);
             date.setDate(date.getDate() - i);
+            // استفاده از ISO String برای هماهنگی با فرمت MongoDB
             const dateKey = date.toISOString().split('T')[0];
             dailyDataMap[dateKey] = {
                 date: dateKey,
                 total_sales: 0,
-                order_count: 0,
-                avg_order_value: 0,
-                orders: []
+                order_count: 0
             };
         }
 
-        // پر کردن داده‌های واقعی
         dailyStats.forEach(stat => {
             if (dailyDataMap[stat._id]) {
                 dailyDataMap[stat._id].total_sales = stat.total_sales;
                 dailyDataMap[stat._id].order_count = stat.order_count;
-                dailyDataMap[stat._id].avg_order_value = Math.round(stat.avg_order_value * 100) / 100;
             }
         });
 
-        // دریافت جزئیات سفارش‌ها برای هر روز (اختیاری - می‌تواند حذف شود برای پرفورمنس بهتر)
-        const orders = await Order.find({
-            status: 'delivered',
-            createdAt: { $gte: startDate, $lte: endDate }
-        })
-        .select('final_price createdAt customer_id')
-        .populate('customer_id', 'fullname');
+        const reportData = Object.values(dailyDataMap).sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        orders.forEach(order => {
-            const dateKey = order.createdAt.toISOString().split('T')[0];
-            if (dailyDataMap[dateKey]) {
-                dailyDataMap[dateKey].orders.push({
-                    order_id: order._id,
-                    final_price: order.final_price,
-                    customer_name: order.customer_id?.fullname || 'نامشخص',
-                    created_at: order.createdAt
-                });
-            }
-        });
+        // ۴. محاسبه آمار تکمیلی
+        const avgDailyRevenue = numDays > 0 ? (totalRevenue / numDays) : 0;
+        const avgOrderValue = totalOrders > 0 ? (totalRevenue / totalOrders) : 0;
 
-        // تبدیل به آرایه و مرتب‌سازی بر اساس تاریخ
-        const reportData = Object.values(dailyDataMap).sort((a, b) =>
-            new Date(b.date) - new Date(a.date)
-        );
-
-        // محاسبه مجموع کل
-        const grandTotal = reportData.reduce((sum, day) => sum + day.total_sales, 0);
-        const totalOrders = reportData.reduce((sum, day) => sum + day.order_count, 0);
-        const activeDays = reportData.filter(day => day.order_count > 0).length;
+        // ۵. یافتن بهترین روز فروش
+        const bestDay = dailyStats.length > 0 ? dailyStats.reduce((max, day) =>
+            day.total_sales > max.total_sales ? day : max
+        ) : null;
 
         res.status(200).json({
             status: 'success',
@@ -193,16 +184,18 @@ exports.getDailyReport = async (req, res) => {
                     start_date: startDate.toISOString().split('T')[0],
                     end_date: endDate.toISOString().split('T')[0],
                     days: numDays,
-                    active_days: activeDays
+                    active_days: dailyStats.length
                 },
                 summary: {
-                    total_revenue: Math.round(grandTotal * 100) / 100,
-                    total_orders: totalOrders,
-                    average_daily_revenue: Math.round((grandTotal / numDays) * 100) / 100,
-                    average_order_value: totalOrders > 0 ? Math.round((grandTotal / totalOrders) * 100) / 100 : 0,
-                    best_day: reportData.length > 0 ? reportData.reduce((max, day) =>
-                        day.total_sales > max.total_sales ? day : max
-                    ) : null
+                    total_revenue: Math.round(totalRevenue * 100) / 100,
+                    total_orders: totalOrders, // ✅ دیگر با ریدیس محاسبه نمی‌شود و دقیق است
+                    average_daily_revenue: Math.round(avgDailyRevenue * 100) / 100,
+                    average_order_value: Math.round(avgOrderValue * 100) / 100,
+                    best_day: bestDay ? {
+                        date: bestDay._id,
+                        total_sales: bestDay.total_sales,
+                        order_count: bestDay.order_count
+                    } : null
                 },
                 daily_reports: reportData
             }
@@ -230,12 +223,12 @@ exports.getItemsReport = async (req, res) => {
         if (isNaN(numLimit) || numLimit < 1) {
             numLimit = 10;
         }
-        numLimit = Math.min(numLimit, 50); 
+        numLimit = Math.min(numLimit, 50);
 
         if (isNaN(numDays) || numDays < 1) {
             numDays = 30;
         }
-        numDays = Math.min(numDays, 90); 
+        numDays = Math.min(numDays, 90);
 
         // محاسبه تاریخ شروع
         const startDate = new Date();

@@ -1,10 +1,10 @@
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// فراخوانی مدل‌ها از پوشه models
+// فراخوانی مدل‌ها
 const Role = require('../models/Role');
 const User = require('../models/User');
 const Category = require('../models/Category');
@@ -12,378 +12,295 @@ const MenuItem = require('../models/MenuItem');
 const Order = require('../models/Order');
 const OrderLog = require('../models/OrderLog');
 const Discount = require('../models/Discount');
-const SystemSetting = require('../models/SystemSetting');
 
 const MONGO_URI = process.env.MONGO_URI;
 
-async function seedDatabase() {
+async function seedFullDatabase() {
     try {
-        console.log('⏳ Connecting to MongoDB...');
+        console.log('Connecting to MongoDB...');
         await mongoose.connect(MONGO_URI);
-        console.log('Connected successfully to foodops database.\n');
+        console.log('Connected successfully.\n');
 
-        // --- قدم اول: اضافه کردن نقش‌های پیش‌فرض (Roles) ---
-        const existingRoles = await Role.countDocuments();
-        if (existingRoles === 0) {
-            console.log('Seeding Roles...');
-            await Role.insertMany([
-                { name: 'Admin', permissions: ['all'] },
-                { name: 'Kitchen Staff', permissions: ['view_kitchen_queue', 'update_order_status'] },
-                { name: 'Cashier', permissions: ['view_ready_orders', 'deliver_orders'] },
-                { name: 'Customer', permissions: ['create_order', 'view_own_orders', 'cancel_own_order'] }
-            ]);
-            console.log('Default system roles added successfully.');
-        } else {
-            console.log('Roles already exist in database. skipping...');
+
+        // اگر می‌خواهید دیتابیس را پاک کنید، خطوط زیر را فعال کنید:
+        await Promise.all([
+            Role.deleteMany({}),
+            User.deleteMany({}),
+            Category.deleteMany({}),
+            MenuItem.deleteMany({}),
+            Order.deleteMany({}),
+            OrderLog.deleteMany({}),
+            Discount.deleteMany({})
+        ]);
+        console.log('Database cleared.\n');
+
+
+        console.log('Creating Roles...');
+        const roles = await Role.insertMany([
+            { name: 'admin', permissions: ['all'] },
+            { name: 'kitchen', permissions: ['view_orders', 'update_status'] },
+            { name: 'delivery', permissions: ['view_ready_orders', 'deliver'] },
+            { name: 'customer', permissions: ['create_order', 'view_own', 'cancel_own'] }
+        ]);
+        const roleMap = {};
+        roles.forEach(r => { roleMap[r.name] = r._id; });
+        console.log('Roles created.\n');
+
+
+        console.log('Creating Users...');
+        const hashedPassword = await bcrypt.hash('password123', 10);
+
+        const users = await User.insertMany([
+            // ادمین
+            { fullname: 'مدیر سیستم', phone_number: '09121111111', password: hashedPassword, role_id: roleMap.admin },
+            // آشپزخانه
+            { fullname: 'احمد رضایی', phone_number: '09122222222', password: hashedPassword, role_id: roleMap.kitchen },
+            { fullname: 'محمد کریمی', phone_number: '09123333333', password: hashedPassword, role_id: roleMap.kitchen },
+            { fullname: 'سعید محمدی', phone_number: '09124444444', password: hashedPassword, role_id: roleMap.kitchen },
+            // صندوق‌دار / تحویل
+            { fullname: 'نرگس حسینی', phone_number: '09125555555', password: hashedPassword, role_id: roleMap.delivery },
+            { fullname: 'پریسا احمدی', phone_number: '09126666666', password: hashedPassword, role_id: roleMap.delivery },
+            // مشتریان
+            { fullname: 'امیر حسین زاده', phone_number: '09127777777', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'زهرا موسوی', phone_number: '09128888888', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'رضا نصیری', phone_number: '09129999999', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'سارا جعفری', phone_number: '09121010101', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'مهدی قاسمی', phone_number: '09121121212', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'فاطمه رحیمی', phone_number: '09121232323', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'حسن عباسی', phone_number: '09121343434', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'مریم کاظمی', phone_number: '09121454545', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'علی شریفی', phone_number: '09121565656', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'نازنین نوری', phone_number: '09121676767', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'پویا جمالی', phone_number: '09121787878', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'گلناز حیدری', phone_number: '09121898989', password: hashedPassword, role_id: roleMap.customer }
+        ]);
+        const userMap = {};
+        users.forEach(u => { userMap[u.fullname] = u._id; });
+        console.log(`✅ ${users.length} users created.\n`);
+
+        console.log('📂 Creating Categories...');
+        const categories = await Category.insertMany([
+            { name: 'غذاهای ایرانی', is_active: true },
+            { name: 'پیتزا و فست‌فود', is_active: true },
+            { name: 'برگر و ساندویچ', is_active: true },
+            { name: 'پیش‌غذا و مخلفات', is_active: true },
+            { name: 'سالادها', is_active: true },
+            { name: 'نوشیدنی‌ها', is_active: true },
+            { name: 'دسرها', is_active: true }
+        ]);
+        const catMap = {};
+        categories.forEach(c => { catMap[c.name] = c._id; });
+        console.log('✅ Categories created.\n');
+
+        console.log('Creating Menu Items...');
+        const menuItems = await MenuItem.insertMany([
+            // غذاهای ایرانی
+            { category_id: catMap['غذاهای ایرانی'], name: 'کباب کوبیده', description: '۲ سیخ کباب کوبیده با برنج زعفرانی و گوجه', price: 320000, stock_quantity: 50, status: true, estimated_prep_time: 25 },
+            { category_id: catMap['غذاهای ایرانی'], name: 'کباب برگ', description: '۲ سیخ کباب برگ با برنج و کباب', price: 450000, stock_quantity: 30, status: true, estimated_prep_time: 30 },
+            { category_id: catMap['غذاهای ایرانی'], name: 'جوجه کباب', description: 'یک ربع جوجه کباب با زعفران و برنج', price: 280000, stock_quantity: 40, status: true, estimated_prep_time: 20 },
+            { category_id: catMap['غذاهای ایرانی'], name: 'قرمه سبزی', description: 'خورش قرمه سبزی با گوشت و لوبیا چیتی', price: 220000, stock_quantity: 35, status: true, estimated_prep_time: 20 },
+            { category_id: catMap['غذاهای ایرانی'], name: 'فسنجان', description: 'خورش فسنجان با مرغ و گردو', price: 250000, stock_quantity: 25, status: true, estimated_prep_time: 25 },
+            { category_id: catMap['غذاهای ایرانی'], name: 'ته چین مرغ', description: 'ته چین با برنج و مرغ و زعفران', price: 270000, stock_quantity: 20, status: true, estimated_prep_time: 35 },
+
+            // پیتزا و فست‌فود
+            { category_id: catMap['پیتزا و فست‌فود'], name: 'پیتزا مخصوص', description: 'پیتزا با سس مخصوص و پنیر موزارلا', price: 290000, stock_quantity: 50, status: true, estimated_prep_time: 20 },
+            { category_id: catMap['پیتزا و فست‌فود'], name: 'پیتزا پپرونی', description: 'پیتزا با سس گوجه و پپرونی', price: 260000, stock_quantity: 45, status: true, estimated_prep_time: 20 },
+            { category_id: catMap['پیتزا و فست‌فود'], name: 'پیتزا مخلوط', description: 'پیتزا با گوشت و قارچ و فلفل دلمه‌ای', price: 310000, stock_quantity: 40, status: true, estimated_prep_time: 22 },
+            { category_id: catMap['پیتزا و فست‌فود'], name: 'پیتزا مرغ', description: 'پیتزا با تکه‌های مرغ و سس سفید', price: 270000, stock_quantity: 30, status: true, estimated_prep_time: 20 },
+            { category_id: catMap['پیتزا و فست‌فود'], name: 'پیتزا سبزیجات', description: 'پیتزا با فلفل دلمه‌ای و گوجه و قارچ', price: 230000, stock_quantity: 35, status: true, estimated_prep_time: 18 },
+
+            // برگر و ساندویچ
+            { category_id: catMap['برگر و ساندویچ'], name: 'برگر مخصوص', description: 'برگر ۱۸۰ گرمی با پنیر و سس مخصوص', price: 240000, stock_quantity: 60, status: true, estimated_prep_time: 15 },
+            { category_id: catMap['برگر و ساندویچ'], name: 'برگر مرغ', description: 'برگر مرغ با کاهو و سس سفید', price: 190000, stock_quantity: 50, status: true, estimated_prep_time: 15 },
+            { category_id: catMap['برگر و ساندویچ'], name: 'ساندویچ کوبیده', description: 'ساندویچ کباب کوبیده با سبزیجات', price: 170000, stock_quantity: 40, status: true, estimated_prep_time: 12 },
+            { category_id: catMap['برگر و ساندویچ'], name: 'ساندویچ ژامبون', description: 'ساندویچ ژامبون و پنیر گودا', price: 150000, stock_quantity: 45, status: true, estimated_prep_time: 10 },
+
+            // پیش‌غذا و مخلفات
+            { category_id: catMap['پیش‌غذا و مخلفات'], name: 'سیب‌زمینی سرخ‌کرده', description: 'سیب‌زمینی سرخ‌کرده با سس', price: 90000, stock_quantity: 100, status: true, estimated_prep_time: 10 },
+            { category_id: catMap['پیش‌غذا و مخلفات'], name: 'نان سیر', description: 'نان تست با سیر و کره', price: 80000, stock_quantity: 80, status: true, estimated_prep_time: 8 },
+            { category_id: catMap['پیش‌غذا و مخلفات'], name: 'چیز استیک', description: 'چیز استیک با پنیر و سس مخصوص', price: 140000, stock_quantity: 40, status: true, estimated_prep_time: 12 },
+            { category_id: catMap['پیش‌غذا و مخلفات'], name: 'سالاد سزار', description: 'سالاد سزار با مرغ و نان', price: 180000, stock_quantity: 30, status: true, estimated_prep_time: 10 },
+
+            // نوشیدنی‌ها
+            { category_id: catMap['نوشیدنی‌ها'], name: 'نوشابه', description: 'نوشابه ۳۰۰ میلی‌لیتری', price: 25000, stock_quantity: 200, status: true, estimated_prep_time: 1 },
+            { category_id: catMap['نوشیدنی‌ها'], name: 'دوغ', description: 'دوغ محلی گازدار', price: 30000, stock_quantity: 150, status: true, estimated_prep_time: 1 },
+            { category_id: catMap['نوشیدنی‌ها'], name: 'آب معدنی', description: 'آب معدنی ۵۰۰ میلی‌لیتری', price: 15000, stock_quantity: 250, status: true, estimated_prep_time: 1 },
+            { category_id: catMap['نوشیدنی‌ها'], name: 'چای', description: 'چای سیاه فرنگی', price: 20000, stock_quantity: 100, status: true, estimated_prep_time: 5 },
+            { category_id: catMap['نوشیدنی‌ها'], name: 'قهوه', description: 'قهوه ترک یا اسپرسو', price: 45000, stock_quantity: 60, status: true, estimated_prep_time: 8 },
+
+            // دسرها
+            { category_id: catMap['دسرها'], name: 'کیک شکلاتی', description: 'برش کیک شکلاتی با پودر قند', price: 110000, stock_quantity: 30, status: true, estimated_prep_time: 5 },
+            { category_id: catMap['دسرها'], name: 'بستنی', description: 'بستنی وانیلی/شکلاتی', price: 50000, stock_quantity: 60, status: true, estimated_prep_time: 1 },
+            { category_id: catMap['دسرها'], name: 'شیرینی زعفرانی', description: 'شیرینی زعفرانی با خلال پسته', price: 75000, stock_quantity: 25, status: true, estimated_prep_time: 3 }
+        ]);
+        const menuMap = {};
+        menuItems.forEach(m => { menuMap[m.name] = { id: m._id, price: m.price }; });
+        console.log(`✅ ${menuItems.length} menu items created.\n`);
+
+
+        console.log('🎫 Creating Discount Codes...');
+        const discounts = await Discount.insertMany([
+            { code: 'FIRST10', discount_percent: 10, expiration_date: new Date('2027-01-01'), is_active: true },
+            { code: 'FOOD20', discount_percent: 20, expiration_date: new Date('2027-06-01'), is_active: true },
+            { code: 'WELCOME', discount_percent: 15, expiration_date: new Date('2026-12-31'), is_active: true },
+            { code: 'HOLIDAY', discount_percent: 25, expiration_date: new Date('2026-10-01'), is_active: false }
+        ]);
+        const discountMap = {};
+        discounts.forEach(d => { discountMap[d.code] = d._id; });
+        console.log('Discount codes created.\n');
+
+        console.log('Creating Orders and Logs...');
+
+        const getOrderItems = (itemNames) => {
+            return itemNames.map(name => {
+                const item = menuMap[name];
+                return {
+                    menu_item_id: item.id,
+                    quantity: Math.floor(Math.random() * 3) + 1,
+                    unit_price: item.price
+                };
+            });
+        };
+
+        const calcTotal = (items) => items.reduce((sum, i) => sum + (i.quantity * i.unit_price), 0);
+        const applyDiscount = (total, code) => {
+            if (!code) return total;
+            const discount = discounts.find(d => d.code === code);
+            if (!discount || !discount.is_active) return total;
+            const percent = discount.discount_percent / 100;
+            return Math.round(total * (1 - percent));
+        };
+
+        const getRandomItem = (list) => list[Math.floor(Math.random() * list.length)];
+        const getAllCustomers = () => {
+            const customers = users.filter(u => u.role_id.toString() === roleMap.customer.toString());
+            return customers.map(u => ({ name: u.fullname, id: u._id }));
+        };
+        const customersList = getAllCustomers();
+
+        const kitchenStaff = users.filter(u => u.role_id.toString() === roleMap.kitchen.toString());
+        const deliveryStaff = users.filter(u => u.role_id.toString() === roleMap.delivery.toString());
+
+        const baseDate = new Date('2026-07-20T10:00:00');
+        const oneDay = 24 * 60 * 60 * 1000;
+
+        const orderData = [];
+
+        const generateOrder = (customer, dateOffset, items, status, discountCode = null) => {
+            const createdAt = new Date(baseDate.getTime() + dateOffset * oneDay + Math.random() * 8 * 60 * 60 * 1000);
+            const totalPrice = calcTotal(items);
+            const finalPrice = applyDiscount(totalPrice, discountCode);
+            const discountId = discountCode ? discountMap[discountCode] : null;
+            return {
+                customer_id: customer.id,
+                items: items,
+                total_price: totalPrice,
+                final_price: finalPrice,
+                discount_code_id: discountId,
+                status: status,
+                createdAt: createdAt,
+                updatedAt: createdAt
+            };
+        };
+
+        const allItemNames = Object.keys(menuMap);
+        const getRandomItems = (count = 2) => {
+            const shuffled = allItemNames.sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        };
+
+        for (let i = 0; i < 60; i++) {
+            const customer = getRandomItem(customersList);
+            const dateOffset = Math.floor(Math.random() * 15) + 1;
+            const itemCount = Math.floor(Math.random() * 4) + 1;
+            const itemNames = getRandomItems(itemCount);
+            const items = getOrderItems(itemNames);
+            const statuses = ['registered', 'preparing', 'ready_for_delivery', 'delivered', 'canceled'];
+
+            let status;
+            const rnd = Math.random();
+            if (rnd < 0.4) status = 'delivered';
+            else if (rnd < 0.6) status = 'ready_for_delivery';
+            else if (rnd < 0.75) status = 'preparing';
+            else if (rnd < 0.9) status = 'registered';
+            else status = 'canceled';
+
+            const discountCode = Math.random() > 0.8 ? getRandomItem(['FIRST10', 'FOOD20', 'WELCOME']) : null;
+            const order = generateOrder(customer, dateOffset, items, status, discountCode);
+            orderData.push(order);
         }
 
-        // --- قدم دوم: اضافه کردن کاربران پیش‌فرض (Users) ---
-        const existingUsers = await User.countDocuments();
-        if (existingUsers === 0) {
-            console.log('Seeding Users...');
+        const insertedOrders = await Order.insertMany(orderData);
+        console.log(`✅ ${insertedOrders.length} orders created.\n`);
 
-            const adminRole = await Role.findOne({ name: 'Admin' });
-            const kitchenRole = await Role.findOne({ name: 'Kitchen Staff' });
-            const cashierRole = await Role.findOne({ name: 'Cashier' });
-            const customerRole = await Role.findOne({ name: 'Customer' });
 
-            // هش کردن رمز عبور پیش‌فرض با 10 دور Salt
-            const hashedPassword = await bcrypt.hash('password123', 10);
+        console.log('📝 Creating Order Logs...');
 
-            await User.insertMany([
-                { fullname: 'Kamran Rostami', phone_number: '09120000001', password: hashedPassword, role_id: adminRole._id },
+        const logs = [];
+        const allOrders = await Order.find().populate('customer_id');
 
-                { fullname: 'Babak Rahimi', phone_number: '09120000002', password: hashedPassword, role_id: kitchenRole._id },
-                { fullname: 'Sina Mehdizadeh', phone_number: '09120000003', password: hashedPassword, role_id: kitchenRole._id },
-                { fullname: 'Farhad Kiani', phone_number: '09120000004', password: hashedPassword, role_id: kitchenRole._id },
+        const getStatusOrder = (status) => {
+            const orderMap = { registered: 1, preparing: 2, ready_for_delivery: 3, delivered: 4, canceled: 5 };
+            return orderMap[status] || 0;
+        };
 
-                { fullname: 'Shirin Golzar', phone_number: '09120000005', password: hashedPassword, role_id: cashierRole._id },
-                { fullname: 'Nima Karimi', phone_number: '09120000006', password: hashedPassword, role_id: cashierRole._id },
+        for (const order of allOrders) {
+            const customerId = order.customer_id._id;
+            const orderStatus = order.status;
+            const statusHistory = ['registered', 'preparing', 'ready_for_delivery', 'delivered', 'canceled'];
 
-                { fullname: 'Ali Rezaee', phone_number: '09120000007', password: hashedPassword, role_id: customerRole._id },
-                { fullname: 'Maryam Ahmadi', phone_number: '09120000008', password: hashedPassword, role_id: customerRole._id },
-                { fullname: 'Reza Mohammadi', phone_number: '09120000009', password: hashedPassword, role_id: customerRole._id },
-                { fullname: 'Sara Karimi', phone_number: '09120000010', password: hashedPassword, role_id: customerRole._id },
-                { fullname: 'Omid Mousavi', phone_number: '09120000011', password: hashedPassword, role_id: customerRole._id },
-                { fullname: 'Negar Ghasemi', phone_number: '09120000012', password: hashedPassword, role_id: customerRole._id },
-                { fullname: 'Hossein Hosseini', phone_number: '09120000013', password: hashedPassword, role_id: customerRole._id },
-                { fullname: 'Zahra Kazemi', phone_number: '09120000014', password: hashedPassword, role_id: customerRole._id },
-                { fullname: 'Mehdi Nouri', phone_number: '09120000015', password: hashedPassword, role_id: customerRole._id },
-                { fullname: 'Fatemeh Jafari', phone_number: '09120000016', password: hashedPassword, role_id: customerRole._id }
-            ]);
-            console.log('Default users added successfully.');
-        } else {
-            console.log('Users already exist in database. skipping...');
-        }
+            let path = [];
+            if (orderStatus === 'canceled') {
+                path = ['registered', 'canceled'];
+            } else {
+                const idx = statusHistory.indexOf(orderStatus);
+                if (idx > 0) {
+                    for (let i = 0; i <= idx; i++) {
+                        path.push(statusHistory[i]);
+                    }
+                } else {
+                    path.push('registered');
+                }
+            }
 
-        // --- قدم سوم: اضافه کردن دسته‌بندی‌ها (Categories) ---
-        const existingCategories = await Category.countDocuments();
-        if (existingCategories === 0) {
-            console.log('Seeding Categories...');
-            await Category.insertMany([
-                { name: 'Fast Food & Pizza', is_active: true },
-                { name: 'Traditional Dishes', is_active: true },
-                { name: 'Burgers & Sandwiches', is_active: true },
-                { name: 'Appetizers & Sides', is_active: true },
-                { name: 'Beverages', is_active: true },
-                { name: 'Salads & Desserts', is_active: true }
-            ]);
-            console.log('Default categories added successfully.');
-        } else {
-            console.log('Categories already exist in database. skipping...');
-        }
+            let oldStatus = null;
+            for (let i = 0; i < path.length; i++) {
+                const newStatus = path[i];
+                let changedBy;
+                if (newStatus === 'registered') {
+                    changedBy = customerId;
+                } else if (['preparing', 'ready_for_delivery'].includes(newStatus)) {
+                    changedBy = getRandomItem(kitchenStaff)._id;
+                } else if (newStatus === 'delivered') {
+                    changedBy = getRandomItem(deliveryStaff)._id;
+                } else if (newStatus === 'canceled') {
+                    changedBy = customerId;
+                }
 
-        // --- قدم چهارم: اضافه کردن آیتم‌های منو (MenuItems) ---
-        const existingMenuItems = await MenuItem.countDocuments();
-        if (existingMenuItems === 0) {
-            console.log('Seeding Menu Items...');
+                let actionType;
+                if (newStatus === 'registered') actionType = 'ORDER_CREATED';
+                else if (newStatus === 'canceled' && oldStatus === 'registered') actionType = 'ORDER_CANCELED';
+                else if (newStatus === 'delivered') actionType = 'ORDER_DELIVERED';
+                else actionType = 'STATUS_UPDATED';
 
-            const fastFoodCat = await Category.findOne({ name: 'Fast Food & Pizza' });
-            const traditionalCat = await Category.findOne({ name: 'Traditional Dishes' });
-            const burgerCat = await Category.findOne({ name: 'Burgers & Sandwiches' });
-            const appetizerCat = await Category.findOne({ name: 'Appetizers & Sides' });
-            const beverageCat = await Category.findOne({ name: 'Beverages' });
-            const saladCat = await Category.findOne({ name: 'Salads & Desserts' });
+                const logTime = new Date(order.createdAt.getTime() + i * 5 * 60 * 1000);
 
-            await MenuItem.insertMany([
-                { name: 'Special Pizza', price: 280000, stock_quantity: 50, category_id: fastFoodCat._id, status: true, image_url: '' },
-                { name: 'Pepperoni Pizza', price: 260000, stock_quantity: 50, category_id: fastFoodCat._id, status: true, image_url: '' },
-                { name: 'Meat and Mushroom Pizza', price: 290000, stock_quantity: 50, category_id: fastFoodCat._id, status: true, image_url: '' },
-
-                { name: 'Koobideh Kebab', price: 320000, stock_quantity: 50, category_id: traditionalCat._id, status: true, image_url: '' },
-                { name: 'Joojeh Kebab', price: 270000, stock_quantity: 50, category_id: traditionalCat._id, status: true, image_url: '' },
-                { name: 'Ghormeh Sabzi', price: 220000, stock_quantity: 50, category_id: traditionalCat._id, status: true, image_url: '' },
-                { name: 'Gheymeh Stew', price: 210000, stock_quantity: 50, category_id: traditionalCat._id, status: true, image_url: '' },
-
-                { name: 'Special Burger', price: 230000, stock_quantity: 50, category_id: burgerCat._id, status: true, image_url: '' },
-                { name: 'Oven-Baked Ham Sandwich', price: 190000, stock_quantity: 50, category_id: burgerCat._id, status: true, image_url: '' },
-
-                { name: 'French Fries', price: 90000, stock_quantity: 100, category_id: appetizerCat._id, status: true, image_url: '' },
-                { name: 'Garlic Bread', price: 110000, stock_quantity: 100, category_id: appetizerCat._id, status: true, image_url: '' },
-
-                { name: 'Soda', price: 30000, stock_quantity: 150, category_id: beverageCat._id, status: true, image_url: '' },
-                { name: 'Persian Doogh', price: 35000, stock_quantity: 150, category_id: beverageCat._id, status: true, image_url: '' },
-                { name: 'Mineral Water', price: 15000, stock_quantity: 200, category_id: beverageCat._id, status: true, image_url: '' },
-
-                { name: 'Caesar Salad', price: 180000, stock_quantity: 40, category_id: saladCat._id, status: true, image_url: '' },
-                { name: 'Shirazi Salad', price: 70000, stock_quantity: 60, category_id: saladCat._id, status: true, image_url: '' }
-            ]);
-            console.log('Default menu items added successfully.');
-
-        } else {
-            console.log('Menu items already exist in database. skipping...');
-        }
-
-        // --- قدم پنجم: اضافه کردن سفارش‌های اولیه (Orders) با نام فیلدهای اصلاح‌شده ---
-        const existingOrders = await Order.countDocuments();
-        if (existingOrders === 0) {
-            console.log('Seeding Orders...');
-
-            const allUsers = await User.find();
-            const userMap = {};
-            allUsers.forEach(u => userMap[u.fullname] = u._id);
-
-            const allMenuItems = await MenuItem.find();
-            const menuMap = {};
-            allMenuItems.forEach(m => menuMap[m.name] = { id: m._id, price: m.price });
-
-            const staticOrders = [
-                { customer: 'Ali Rezaee', status: 'delivered', date: '2026-07-20T13:15:00', items: [{ name: 'Special Pizza', qty: 1 }, { name: 'Soda', qty: 2 }] },
-                { customer: 'Ali Rezaee', status: 'delivered', date: '2026-07-21T20:30:00', items: [{ name: 'Special Burger', qty: 2 }, { name: 'French Fries', qty: 1 }, { name: 'Persian Doogh', qty: 2 }] },
-                { customer: 'Ali Rezaee', status: 'canceled', date: '2026-07-22T14:00:00', items: [{ name: 'Koobideh Kebab', qty: 1 }] },
-
-                { customer: 'Maryam Ahmadi', status: 'delivered', date: '2026-07-20T14:20:00', items: [{ name: 'Joojeh Kebab', qty: 2 }, { name: 'Shirazi Salad', qty: 2 }, { name: 'Persian Doogh', qty: 2 }] },
-                { customer: 'Maryam Ahmadi', status: 'canceled', date: '2026-07-22T19:20:00', items: [{ name: 'Caesar Salad', qty: 2 }, { name: 'Mineral Water', qty: 2 }] },
-                { customer: 'Maryam Ahmadi', status: 'delivered', date: '2026-07-23T19:45:00', items: [{ name: 'Pepperoni Pizza', qty: 1 }, { name: 'Garlic Bread', qty: 1 }, { name: 'Soda', qty: 1 }] },
-
-                { customer: 'Reza Mohammadi', status: 'delivered', date: '2026-07-21T12:30:00', items: [{ name: 'Ghormeh Sabzi', qty: 1 }, { name: 'Mineral Water', qty: 1 }] },
-                { customer: 'Reza Mohammadi', status: 'canceled', date: '2026-07-24T21:10:00', items: [{ name: 'Meat and Mushroom Pizza', qty: 2 }, { name: 'Soda', qty: 2 }] },
-
-                { customer: 'Sara Karimi', status: 'delivered', date: '2026-07-20T15:00:00', items: [{ name: 'Caesar Salad', qty: 1 }, { name: 'Mineral Water', qty: 1 }] },
-                { customer: 'Sara Karimi', status: 'delivered', date: '2026-07-22T13:40:00', items: [{ name: 'Oven-Baked Ham Sandwich', qty: 1 }, { name: 'French Fries', qty: 1 }, { name: 'Soda', qty: 1 }] },
-                { customer: 'Sara Karimi', status: 'canceled', date: '2026-07-24T13:10:00', items: [{ name: 'Pepperoni Pizza', qty: 1 }, { name: 'Garlic Bread', qty: 1 }] },
-                { customer: 'Sara Karimi', status: 'delivered', date: '2026-07-25T20:00:00', items: [{ name: 'Special Burger', qty: 1 }, { name: 'Soda', qty: 1 }] },
-
-                { customer: 'Omid Mousavi', status: 'delivered', date: '2026-07-21T21:30:00', items: [{ name: 'Pepperoni Pizza', qty: 2 }, { name: 'Garlic Bread', qty: 1 }] },
-                { customer: 'Omid Mousavi', status: 'delivered', date: '2026-07-24T14:15:00', items: [{ name: 'Gheymeh Stew', qty: 1 }, { name: 'Shirazi Salad', qty: 1 }, { name: 'Persian Doogh', qty: 1 }] },
-
-                { customer: 'Negar Ghasemi', status: 'delivered', date: '2026-07-20T19:00:00', items: [{ name: 'Koobideh Kebab', qty: 2 }, { name: 'Persian Doogh', qty: 2 }] },
-                { customer: 'Negar Ghasemi', status: 'canceled', date: '2026-07-23T13:20:00', items: [{ name: 'Special Pizza', qty: 1 }] },
-
-                { customer: 'Hossein Hosseini', status: 'canceled', date: '2026-07-21T21:00:00', items: [{ name: 'Special Burger', qty: 2 }, { name: 'Soda', qty: 2 }] },
-                { customer: 'Hossein Hosseini', status: 'delivered', date: '2026-07-22T20:45:00', items: [{ name: 'Meat and Mushroom Pizza', qty: 1 }, { name: 'French Fries', qty: 1 }, { name: 'Soda', qty: 2 }] },
-                { customer: 'Hossein Hosseini', status: 'delivered', date: '2026-07-25T15:30:00', items: [{ name: 'Joojeh Kebab', qty: 1 }, { name: 'Mineral Water', qty: 1 }] },
-
-                { customer: 'Zahra Kazemi', status: 'delivered', date: '2026-07-21T13:50:00', items: [{ name: 'Special Burger', qty: 2 }, { name: 'Caesar Salad', qty: 1 }] },
-                { customer: 'Zahra Kazemi', status: 'delivered', date: '2026-07-24T19:15:00', items: [{ name: 'Ghormeh Sabzi', qty: 2 }, { name: 'Shirazi Salad', qty: 2 }] },
-                { customer: 'Zahra Kazemi', status: 'canceled', date: '2026-07-25T20:15:00', items: [{ name: 'Oven-Baked Ham Sandwich', qty: 1 }, { name: 'French Fries', qty: 1 }] },
-
-                { customer: 'Mehdi Nouri', status: 'delivered', date: '2026-07-20T21:00:00', items: [{ name: 'Oven-Baked Ham Sandwich', qty: 2 }, { name: 'Soda', qty: 2 }] },
-                { customer: 'Mehdi Nouri', status: 'canceled', date: '2026-07-23T20:10:00', items: [{ name: 'Koobideh Kebab', qty: 3 }, { name: 'Persian Doogh', qty: 3 }] },
-
-                { customer: 'Fatemeh Jafari', status: 'delivered', date: '2026-07-22T14:30:00', items: [{ name: 'Pepperoni Pizza', qty: 1 }, { name: 'Special Pizza', qty: 1 }, { name: 'Soda', qty: 2 }] },
-                { customer: 'Fatemeh Jafari', status: 'canceled', date: '2026-07-23T15:45:00', items: [{ name: 'Joojeh Kebab', qty: 1 }, { name: 'Shirazi Salad', qty: 1 }] },
-                { customer: 'Fatemeh Jafari', status: 'delivered', date: '2026-07-25T13:00:00', items: [{ name: 'Gheymeh Stew', qty: 2 }, { name: 'Mineral Water', qty: 2 }] }
-            ];
-
-            const ordersToInsert = staticOrders.map(order => {
-                let totalPrice = 0;
-                const items = order.items.map(item => {
-                    const menuItem = menuMap[item.name];
-                    const itemTotal = menuItem.price * item.qty;
-                    totalPrice += itemTotal;
-                    return {
-                        menu_item_id: menuItem.id,
-                        quantity: item.qty,
-                        unit_price: menuItem.price // اصلاح شد: منطبق با نام unit_price در Schema
-                    };
+                logs.push({
+                    order_id: order._id,
+                    old_status: oldStatus,
+                    new_status: newStatus,
+                    changed_by: changedBy,
+                    action_type: actionType,
+                    createdAt: logTime
                 });
-
-                const orderDate = new Date(order.date);
-
-                return {
-                    customer_id: userMap[order.customer],
-                    items: items,
-                    total_price: totalPrice,              // اصلاح شد: منطبق با نام total_price در Schema
-                    final_price: totalPrice,              // اضافه شد: منطبق با فیلد اجباری final_price در Schema
-                    status: order.status,
-                    createdAt: orderDate,
-                    updatedAt: orderDate
-                };
-            });
-
-            await Order.insertMany(ordersToInsert);
-            console.log('Default orders added successfully.');
-        } else {
-            console.log('Orders already exist in database. skipping...');
+                oldStatus = newStatus;
+            }
         }
 
-        // --- قدم ششم: اضافه کردن لاگ‌های سفارش (Order Logs) با تطابق کامل با اکشن‌ها ---
-        const existingLogs = await OrderLog.countDocuments();
-        if (existingLogs === 0) {
-            console.log('Seeding Order Logs statically...');
+        await OrderLog.insertMany(logs);
+        console.log(`✅ ${logs.length} order logs created.\n`);
 
-            const allUsers = await User.find();
-            const userMap = {};
-            allUsers.forEach(u => userMap[u.fullname] = u._id);
-
-            const allOrders = await Order.find();
-            const orderMap = {};
-            allOrders.forEach(o => {
-                const dateKey = new Date(o.createdAt).toISOString();
-                orderMap[`${o.customer_id}_${dateKey}`] = o._id;
-            });
-
-            const getOrderId = (customerName, dateStr) => {
-                const userId = userMap[customerName];
-                const dateKey = new Date(dateStr).toISOString();
-                return orderMap[`${userId}_${dateKey}`];
-            };
-
-            const staffNameMapping = {
-                'Kitchen Staff 1': 'Babak Rahimi',
-                'Kitchen Staff 2': 'Sina Mehdizadeh',
-                'Kitchen Staff 3': 'Farhad Kiani',
-                'Cashier 1': 'Shirin Golzar',
-                'Cashier 2': 'Nima Karimi'
-            };
-
-            const staticLogs = [
-                { customer: 'Ali Rezaee', orderDate: '2026-07-20T13:15:00', old_status: null, new_status: 'registered', changed_by: 'Ali Rezaee', action_type: 'ORDER_CREATED' },
-                { customer: 'Ali Rezaee', orderDate: '2026-07-20T13:15:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 1', action_type: 'STATUS_UPDATED' },
-                { customer: 'Ali Rezaee', orderDate: '2026-07-20T13:15:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 2', action_type: 'STATUS_UPDATED' },
-                { customer: 'Ali Rezaee', orderDate: '2026-07-20T13:15:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 1', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Ali Rezaee', orderDate: '2026-07-21T20:30:00', old_status: null, new_status: 'registered', changed_by: 'Ali Rezaee', action_type: 'ORDER_CREATED' },
-                { customer: 'Ali Rezaee', orderDate: '2026-07-21T20:30:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 2', action_type: 'STATUS_UPDATED' },
-                { customer: 'Ali Rezaee', orderDate: '2026-07-21T20:30:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 3', action_type: 'STATUS_UPDATED' },
-                { customer: 'Ali Rezaee', orderDate: '2026-07-21T20:30:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 2', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Ali Rezaee', orderDate: '2026-07-22T14:00:00', old_status: null, new_status: 'registered', changed_by: 'Ali Rezaee', action_type: 'ORDER_CREATED' },
-                { customer: 'Ali Rezaee', orderDate: '2026-07-22T14:00:00', old_status: 'registered', new_status: 'canceled', changed_by: 'Ali Rezaee', action_type: 'ORDER_CANCELED' },
-
-                { customer: 'Maryam Ahmadi', orderDate: '2026-07-20T14:20:00', old_status: null, new_status: 'registered', changed_by: 'Maryam Ahmadi', action_type: 'ORDER_CREATED' },
-                { customer: 'Maryam Ahmadi', orderDate: '2026-07-20T14:20:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 1', action_type: 'STATUS_UPDATED' },
-                { customer: 'Maryam Ahmadi', orderDate: '2026-07-20T14:20:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 1', action_type: 'STATUS_UPDATED' },
-                { customer: 'Maryam Ahmadi', orderDate: '2026-07-20T14:20:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 1', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Maryam Ahmadi', orderDate: '2026-07-22T19:20:00', old_status: null, new_status: 'registered', changed_by: 'Maryam Ahmadi', action_type: 'ORDER_CREATED' },
-                { customer: 'Maryam Ahmadi', orderDate: '2026-07-22T19:20:00', old_status: 'registered', new_status: 'canceled', changed_by: 'Maryam Ahmadi', action_type: 'ORDER_CANCELED' },
-
-                { customer: 'Maryam Ahmadi', orderDate: '2026-07-23T19:45:00', old_status: null, new_status: 'registered', changed_by: 'Maryam Ahmadi', action_type: 'ORDER_CREATED' },
-                { customer: 'Maryam Ahmadi', orderDate: '2026-07-23T19:45:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 3', action_type: 'STATUS_UPDATED' },
-                { customer: 'Maryam Ahmadi', orderDate: '2026-07-23T19:45:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 2', action_type: 'STATUS_UPDATED' },
-                { customer: 'Maryam Ahmadi', orderDate: '2026-07-23T19:45:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 2', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Reza Mohammadi', orderDate: '2026-07-21T12:30:00', old_status: null, new_status: 'registered', changed_by: 'Reza Mohammadi', action_type: 'ORDER_CREATED' },
-                { customer: 'Reza Mohammadi', orderDate: '2026-07-21T12:30:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 2', action_type: 'STATUS_UPDATED' },
-                { customer: 'Reza Mohammadi', orderDate: '2026-07-21T12:30:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 1', action_type: 'STATUS_UPDATED' },
-                { customer: 'Reza Mohammadi', orderDate: '2026-07-21T12:30:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 1', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Reza Mohammadi', orderDate: '2026-07-24T21:10:00', old_status: null, new_status: 'registered', changed_by: 'Reza Mohammadi', action_type: 'ORDER_CREATED' },
-                { customer: 'Reza Mohammadi', orderDate: '2026-07-24T21:10:00', old_status: 'registered', new_status: 'canceled', changed_by: 'Reza Mohammadi', action_type: 'ORDER_CANCELED' },
-
-                { customer: 'Sara Karimi', orderDate: '2026-07-20T15:00:00', old_status: null, new_status: 'registered', changed_by: 'Sara Karimi', action_type: 'ORDER_CREATED' },
-                { customer: 'Sara Karimi', orderDate: '2026-07-20T15:00:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 1', action_type: 'STATUS_UPDATED' },
-                { customer: 'Sara Karimi', orderDate: '2026-07-20T15:00:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 3', action_type: 'STATUS_UPDATED' },
-                { customer: 'Sara Karimi', orderDate: '2026-07-20T15:00:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 1', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Sara Karimi', orderDate: '2026-07-22T13:40:00', old_status: null, new_status: 'registered', changed_by: 'Sara Karimi', action_type: 'ORDER_CREATED' },
-                { customer: 'Sara Karimi', orderDate: '2026-07-22T13:40:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 2', action_type: 'STATUS_UPDATED' },
-                { customer: 'Sara Karimi', orderDate: '2026-07-22T13:40:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 2', action_type: 'STATUS_UPDATED' },
-                { customer: 'Sara Karimi', orderDate: '2026-07-22T13:40:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 2', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Sara Karimi', orderDate: '2026-07-24T13:10:00', old_status: null, new_status: 'registered', changed_by: 'Sara Karimi', action_type: 'ORDER_CREATED' },
-                { customer: 'Sara Karimi', orderDate: '2026-07-24T13:10:00', old_status: 'registered', new_status: 'canceled', changed_by: 'Sara Karimi', action_type: 'ORDER_CANCELED' },
-
-                { customer: 'Sara Karimi', orderDate: '2026-07-25T20:00:00', old_status: null, new_status: 'registered', changed_by: 'Sara Karimi', action_type: 'ORDER_CREATED' },
-                { customer: 'Sara Karimi', orderDate: '2026-07-25T20:00:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 3', action_type: 'STATUS_UPDATED' },
-                { customer: 'Sara Karimi', orderDate: '2026-07-25T20:00:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 1', action_type: 'STATUS_UPDATED' },
-                { customer: 'Sara Karimi', orderDate: '2026-07-25T20:00:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 1', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Omid Mousavi', orderDate: '2026-07-21T21:30:00', old_status: null, new_status: 'registered', changed_by: 'Omid Mousavi', action_type: 'ORDER_CREATED' },
-                { customer: 'Omid Mousavi', orderDate: '2026-07-21T21:30:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 1', action_type: 'STATUS_UPDATED' },
-                { customer: 'Omid Mousavi', orderDate: '2026-07-21T21:30:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 2', action_type: 'STATUS_UPDATED' },
-                { customer: 'Omid Mousavi', orderDate: '2026-07-21T21:30:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 2', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Omid Mousavi', orderDate: '2026-07-24T14:15:00', old_status: null, new_status: 'registered', changed_by: 'Omid Mousavi', action_type: 'ORDER_CREATED' },
-                { customer: 'Omid Mousavi', orderDate: '2026-07-24T14:15:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 2', action_type: 'STATUS_UPDATED' },
-                { customer: 'Omid Mousavi', orderDate: '2026-07-24T14:15:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 3', action_type: 'STATUS_UPDATED' },
-                { customer: 'Omid Mousavi', orderDate: '2026-07-24T14:15:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 1', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Negar Ghasemi', orderDate: '2026-07-20T19:00:00', old_status: null, new_status: 'registered', changed_by: 'Negar Ghasemi', action_type: 'ORDER_CREATED' },
-                { customer: 'Negar Ghasemi', orderDate: '2026-07-20T19:00:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 3', action_type: 'STATUS_UPDATED' },
-                { customer: 'Negar Ghasemi', orderDate: '2026-07-20T19:00:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 3', action_type: 'STATUS_UPDATED' },
-                { customer: 'Negar Ghasemi', orderDate: '2026-07-20T19:00:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 2', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Negar Ghasemi', orderDate: '2026-07-23T13:20:00', old_status: null, new_status: 'registered', changed_by: 'Negar Ghasemi', action_type: 'ORDER_CREATED' },
-                { customer: 'Negar Ghasemi', orderDate: '2026-07-23T13:20:00', old_status: 'registered', new_status: 'canceled', changed_by: 'Negar Ghasemi', action_type: 'ORDER_CANCELED' },
-
-                { customer: 'Hossein Hosseini', orderDate: '2026-07-21T21:00:00', old_status: null, new_status: 'registered', changed_by: 'Hossein Hosseini', action_type: 'ORDER_CREATED' },
-                { customer: 'Hossein Hosseini', orderDate: '2026-07-21T21:00:00', old_status: 'registered', new_status: 'canceled', changed_by: 'Hossein Hosseini', action_type: 'ORDER_CANCELED' },
-
-                { customer: 'Hossein Hosseini', orderDate: '2026-07-22T20:45:00', old_status: null, new_status: 'registered', changed_by: 'Hossein Hosseini', action_type: 'ORDER_CREATED' },
-                { customer: 'Hossein Hosseini', orderDate: '2026-07-22T20:45:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 1', action_type: 'STATUS_UPDATED' },
-                { customer: 'Hossein Hosseini', orderDate: '2026-07-22T20:45:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 2', action_type: 'STATUS_UPDATED' },
-                { customer: 'Hossein Hosseini', orderDate: '2026-07-22T20:45:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 1', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Hossein Hosseini', orderDate: '2026-07-25T15:30:00', old_status: null, new_status: 'registered', changed_by: 'Hossein Hosseini', action_type: 'ORDER_CREATED' },
-                { customer: 'Hossein Hosseini', orderDate: '2026-07-25T15:30:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 2', action_type: 'STATUS_UPDATED' },
-                { customer: 'Hossein Hosseini', orderDate: '2026-07-25T15:30:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 1', action_type: 'STATUS_UPDATED' },
-                { customer: 'Hossein Hosseini', orderDate: '2026-07-25T15:30:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 2', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Zahra Kazemi', orderDate: '2026-07-21T13:50:00', old_status: null, new_status: 'registered', changed_by: 'Zahra Kazemi', action_type: 'ORDER_CREATED' },
-                { customer: 'Zahra Kazemi', orderDate: '2026-07-21T13:50:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 3', action_type: 'STATUS_UPDATED' },
-                { customer: 'Zahra Kazemi', orderDate: '2026-07-21T13:50:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 3', action_type: 'STATUS_UPDATED' },
-                { customer: 'Zahra Kazemi', orderDate: '2026-07-21T13:50:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 1', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Zahra Kazemi', orderDate: '2026-07-24T19:15:00', old_status: null, new_status: 'registered', changed_by: 'Zahra Kazemi', action_type: 'ORDER_CREATED' },
-                { customer: 'Zahra Kazemi', orderDate: '2026-07-24T19:15:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 1', action_type: 'STATUS_UPDATED' },
-                { customer: 'Zahra Kazemi', orderDate: '2026-07-24T19:15:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 2', action_type: 'STATUS_UPDATED' },
-                { customer: 'Zahra Kazemi', orderDate: '2026-07-24T19:15:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 2', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Zahra Kazemi', orderDate: '2026-07-25T20:15:00', old_status: null, new_status: 'registered', changed_by: 'Zahra Kazemi', action_type: 'ORDER_CREATED' },
-                { customer: 'Zahra Kazemi', orderDate: '2026-07-25T20:15:00', old_status: 'registered', new_status: 'canceled', changed_by: 'Zahra Kazemi', action_type: 'ORDER_CANCELED' },
-
-                { customer: 'Mehdi Nouri', orderDate: '2026-07-20T21:00:00', old_status: null, new_status: 'registered', changed_by: 'Mehdi Nouri', action_type: 'ORDER_CREATED' },
-                { customer: 'Mehdi Nouri', orderDate: '2026-07-20T21:00:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 2', action_type: 'STATUS_UPDATED' },
-                { customer: 'Mehdi Nouri', orderDate: '2026-07-20T21:00:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 3', action_type: 'STATUS_UPDATED' },
-                { customer: 'Mehdi Nouri', orderDate: '2026-07-20T21:00:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 1', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Mehdi Nouri', orderDate: '2026-07-23T20:10:00', old_status: null, new_status: 'registered', changed_by: 'Mehdi Nouri', action_type: 'ORDER_CREATED' },
-                { customer: 'Mehdi Nouri', orderDate: '2026-07-23T20:10:00', old_status: 'registered', new_status: 'canceled', changed_by: 'Mehdi Nouri', action_type: 'ORDER_CANCELED' },
-
-                { customer: 'Fatemeh Jafari', orderDate: '2026-07-22T14:30:00', old_status: null, new_status: 'registered', changed_by: 'Fatemeh Jafari', action_type: 'ORDER_CREATED' },
-                { customer: 'Fatemeh Jafari', orderDate: '2026-07-22T14:30:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 1', action_type: 'STATUS_UPDATED' },
-                { customer: 'Fatemeh Jafari', orderDate: '2026-07-22T14:30:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 1', action_type: 'STATUS_UPDATED' },
-                { customer: 'Fatemeh Jafari', orderDate: '2026-07-22T14:30:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 2', action_type: 'ORDER_DELIVERED' },
-
-                { customer: 'Fatemeh Jafari', orderDate: '2026-07-23T15:45:00', old_status: null, new_status: 'registered', changed_by: 'Fatemeh Jafari', action_type: 'ORDER_CREATED' },
-                { customer: 'Fatemeh Jafari', orderDate: '2026-07-23T15:45:00', old_status: 'registered', new_status: 'canceled', changed_by: 'Fatemeh Jafari', action_type: 'ORDER_CANCELED' },
-
-                { customer: 'Fatemeh Jafari', orderDate: '2026-07-25T13:00:00', old_status: null, new_status: 'registered', changed_by: 'Fatemeh Jafari', action_type: 'ORDER_CREATED' },
-                { customer: 'Fatemeh Jafari', orderDate: '2026-07-25T13:00:00', old_status: 'registered', new_status: 'preparing', changed_by: 'Kitchen Staff 3', action_type: 'STATUS_UPDATED' },
-                { customer: 'Fatemeh Jafari', orderDate: '2026-07-25T13:00:00', old_status: 'preparing', new_status: 'ready_for_delivery', changed_by: 'Kitchen Staff 2', action_type: 'STATUS_UPDATED' },
-                { customer: 'Fatemeh Jafari', orderDate: '2026-07-25T13:00:00', old_status: 'ready_for_delivery', new_status: 'delivered', changed_by: 'Cashier 1', action_type: 'ORDER_DELIVERED' }
-            ];
-
-            const logsToInsert = staticLogs.map(log => {
-                const realName = staffNameMapping[log.changed_by] || log.changed_by;
-                return {
-                    order_id: getOrderId(log.customer, log.orderDate),
-                    old_status: log.old_status,
-                    new_status: log.new_status,
-                    changed_by: userMap[realName],
-                    action_type: log.action_type // اضافه شد: منطبق با فیلد اجباری action_type در Schema
-                };
-            });
-
-            await OrderLog.insertMany(logsToInsert);
-            console.log('Default order logs added successfully.');
-        } else {
-            console.log('Order logs already exist in database. skipping...');
-        }
-        
+        console.log('Seeding completed successfully!');
         process.exit(0);
 
     } catch (error) {
@@ -392,4 +309,4 @@ async function seedDatabase() {
     }
 }
 
-seedDatabase();
+seedFullDatabase();
