@@ -166,6 +166,17 @@
       class="bg-white border-t mt-12 py-6 text-center text-sm text-gray-500"
     >
       <p>سامانه مدیریت سفارشات FoodOps © ۲۰۲۶</p>
+      <!-- ۷. مودال جزئیات غذا (Food Item Details Modal) -->
+      <div id="food-modal" class="fixed inset-0 z-50 transition-opacity duration-300 opacity-0 pointer-events-none flex items-center justify-center p-4">
+        <!-- پس‌زمینه تاریک -->
+        <div id="food-modal-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+        <!-- کادر اصلی مودال -->
+        <div class="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden z-10 transform transition-all duration-300 scale-95" id="food-modal-panel">
+          <!-- محتوای مودال توسط JS پر می‌شود -->
+          <div id="food-modal-content"></div>
+        </div>
+      </div>
     </footer>
 
     <script type="module" src="/src/main.js"></script>
