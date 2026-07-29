@@ -1,4 +1,5 @@
 import { fetchAPI } from '../../services/api.js';
+import { formatPrice } from '../../utils/helpers.js';
 
 const ordersContainer = document.getElementById('orders-container');
 const messageContainer = document.getElementById('message-container');
@@ -149,7 +150,7 @@ function createOrderCard(order) {
           <span class="font-bold text-amber-600 bg-white px-2 py-0.5 rounded-lg text-xs shadow-xs border border-slate-200/60">${quantity} عدد</span>
           <span class="font-medium text-slate-700">${foodName}</span>
         </div>
-        <span class="text-slate-600 font-semibold">${totalPrice.toLocaleString('fa-IR')} تومان</span>
+        <span class="text-slate-600 font-semibold">${formatPrice(totalPrice)}</span>
       </div>
     `;
   });
@@ -183,7 +184,7 @@ function createOrderCard(order) {
     <!-- مبلغ کل سفارش -->
     <div class="flex justify-between items-center pt-3 border-t border-slate-200/80">
       <span class="text-sm font-bold text-slate-800">مبلغ کل سفارش:</span>
-      <span class="text-lg font-black text-amber-600">${(order.total_price || 0).toLocaleString('fa-IR')} تومان</span>
+      <span class="text-lg font-black text-amber-600">${formatPrice(order.total_price)}</span>
     </div>
   `;
 

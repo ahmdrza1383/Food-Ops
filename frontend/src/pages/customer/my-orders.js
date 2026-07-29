@@ -221,11 +221,7 @@ async function handleCancelOrder(orderId, buttonElement) {
     buttonElement.textContent = 'در حال لغو...';
 
     await fetchAPI(`/orders/${orderId}/cancel`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'x-auth-token': token
-      }
+      method: 'PATCH'
     });
 
     showActionMessage('سفارش شما با موفقیت لغو شد.', 'success');

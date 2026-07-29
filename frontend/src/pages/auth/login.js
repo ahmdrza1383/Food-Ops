@@ -38,7 +38,7 @@ function redirectByRole(roleName) {
 
   switch (normalizedRole) {
     case 'admin':
-      window.location.href = '/src/pages/admin/dashboard.html';
+      window.location.href = '/src/pages/admin/menu-manager.html';
       break;
     case 'kitchen staff':
       window.location.href = '/src/pages/kitchen/orders.html';

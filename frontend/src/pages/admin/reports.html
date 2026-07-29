@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>گزارشات و آمار | FoodOps Admin</title>
+    <link rel="stylesheet" href="/src/style.css" />
+    <!-- اضافه کردن کتابخانه Chart.js از CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800">
+    <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">🍔</span>
+                <h1 class="text-xl font-extrabold text-amber-600">FoodOps</h1>
+                <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-full">پنل مدیریت</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="user-name" class="text-xs bg-orange-100 text-amber-600 px-3 py-1.5 rounded-xl font-bold">ادمین</span>
+                <button id="logout-btn" class="bg-rose-50 text-rose-600 hover:bg-rose-100 px-3 py-1.5 rounded-xl text-xs font-bold transition">
+                    خروج
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        <div>
+            <h2 class="text-xl font-extrabold text-slate-800">داشبورد آماری</h2>
+            <p class="text-xs text-slate-500 mt-1">بررسی وضعیت کلی سامانه و روند فروش</p>
+        </div>
+
+        <!-- ۱. کارت‌های آمار کلی (مطابق با داده‌های خروجی بک‌اند) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">کل سفارشات</span>
+                <span id="stat-orders" class="text-3xl font-black text-slate-800 mt-2">۰</span>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">کل درآمد</span>
+                <span id="stat-revenue" class="text-3xl font-black text-emerald-600 mt-2">۰ تومان</span>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">میانگین سبد خرید</span>
+                <span id="stat-avg-order" class="text-3xl font-black text-amber-600 mt-2">۰ تومان</span>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">میانگین درآمد روزانه</span>
+                <span id="stat-avg-daily" class="text-3xl font-black text-slate-800 mt-2">۰ تومان</span>
+            </div>
+        </div>
+
+        <!-- ۲. نمودار فروش روزانه (با Chart.js) -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-slate-700 text-sm">روند فروش روزانه</h3>
+                <!-- یک سلکتور ساده برای تغییر بازه زمانی (اختیاری) -->
+                <select id="days-select" class="text-xs border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-none">
+                    <option value="7">۷ روز اخیر</option>
+                    <option value="30">۳۰ روز اخیر</option>
+                </select>
+            </div>
+            <div class="h-64">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- ۳. لیست پرفروش‌ترین آیتم‌ها -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-slate-700 text-sm">🏆 پرفروش‌ترین غذاها (کل دوران)</h3>
+                <span id="top-items-count" class="text-xs text-slate-400"></span>
+            </div>
+            <div id="top-items-container" class="space-y-3">
+                <!-- توسط JS پر می‌شود -->
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="./reports.js"></script>
+</body>
+</html>

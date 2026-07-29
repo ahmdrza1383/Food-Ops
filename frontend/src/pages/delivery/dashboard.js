@@ -1,13 +1,16 @@
+// frontend/src/pages/delivery/dashboard.js
 import { fetchAPI } from '../../services/api.js';
+import { formatPrice } from '../../utils/helpers.js'; 
 
 const ordersContainer = document.getElementById('orders-container');
 const messageContainer = document.getElementById('message-container');
 const logoutBtn = document.getElementById('logout-btn');
 const userNameSpan = document.getElementById('user-name');
+const searchInput = document.getElementById('search-orders'); 
 
 let cashierOrders = [];
+let searchQuery = ''; 
 
-// بررسی احراز هویت
 const token = localStorage.getItem('token');
 const userStr = localStorage.getItem('user');
 if (!token) {
@@ -42,7 +45,7 @@ async function loadCashierOrders() {
       // مرتب‌سازی بر اساس زمان: قدیمی‌ترین بالا (FIFO)
       cashierOrders.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
-      renderOrders();
+      renderOrders(); // با رندر کردن دوباره، جستجو هم اعمال می‌شود
     } else {
       messageContainer.textContent = response.message || 'خطا در دریافت سفارشات.';
     }
@@ -52,11 +55,33 @@ async function loadCashierOrders() {
 }
 
 /**
- * رندر کارت‌های سفارش صندوق‌داری
+ * 👇 اضافه شدن رویداد جستجو
+ */
+searchInput.addEventListener('input', (e) => {
+  searchQuery = e.target.value.trim().toLowerCase();
+  renderOrders(); // با هر بار تایپ کاربر، لیست فیلتر و دوباره رندر می‌شود
+});
+
+/**
+ * رندر کارت‌های سفارش صندوق‌داری با اعمال فیلتر جستجو
  */
 function renderOrders() {
-  if (cashierOrders.length === 0) {
-    messageContainer.textContent = 'هیچ سفارشی جهت تحویل وجود ندارد.';
+  // اعمال فیلتر روی لیست اصلی
+  let filteredOrders = cashierOrders;
+
+  if (searchQuery) {
+    filteredOrders = cashierOrders.filter(order => {
+      const phone = order.customer_id?.phone_number?.toLowerCase() || '';
+      const id = order._id?.toLowerCase() || '';
+      return id.includes(searchQuery) || phone.includes(searchQuery);
+    });
+  }
+
+  // بررسی اینکه آیا لیست فیلتر شده خالی است یا خیر
+  if (filteredOrders.length === 0) {
+    messageContainer.textContent = searchQuery 
+      ? 'هیچ سفارشی با این مشخصات یافت نشد.' 
+      : 'هیچ سفارشی جهت تحویل وجود ندارد.';
     messageContainer.classList.remove('hidden');
     ordersContainer.innerHTML = '';
     return;
@@ -65,7 +90,8 @@ function renderOrders() {
   messageContainer.classList.add('hidden');
   ordersContainer.innerHTML = '';
 
-  cashierOrders.forEach(order => {
+  // اینجا به جای cashierOrders، از filteredOrders استفاده می‌کنیم
+  filteredOrders.forEach(order => {
     const card = createOrderCard(order);
     ordersContainer.appendChild(card);
   });
@@ -74,7 +100,6 @@ function renderOrders() {
 function createOrderCard(order) {
   const card = document.createElement('div');
   
-  // استفاده از رنگ پس‌زمینه بنفش ملایم (Purple) مشابه صفحه مشتری
   const cardBg = 'bg-purple-50/40 border-purple-200';
   card.className = `rounded-2xl border p-6 shadow-sm hover:shadow-md transition ${cardBg}`;
 
@@ -92,7 +117,6 @@ function createOrderCard(order) {
   }) : 'نامشخص';
   const orderId = order._id;
 
-  // دکمه تحویل به مشتری با هماهنگی طیف رنگی جدید
   const actionButtonHtml = `
     <button data-id="${orderId}" class="deliver-btn bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm shadow-purple-600/20 flex items-center gap-1.5">
       <span>به مشتری تحویل داده شد</span> <i class="fa-solid fa-check-double"></i>
@@ -113,7 +137,7 @@ function createOrderCard(order) {
           <span class="font-bold text-purple-600 bg-white px-2 py-0.5 rounded-lg text-xs shadow-xs border border-slate-200/60">${quantity} عدد</span>
           <span class="font-medium text-slate-700">${foodName}</span>
         </div>
-        <span class="text-slate-600 font-semibold">${totalPrice.toLocaleString('fa-IR')} تومان</span>
+        <span class="text-slate-600 font-semibold">${formatPrice(totalPrice)}</span>
       </div>
     `;
   });
@@ -147,11 +171,10 @@ function createOrderCard(order) {
     <!-- مبلغ کل سفارش -->
     <div class="flex justify-between items-center pt-3 border-t border-slate-200/80">
       <span class="text-sm font-bold text-slate-800">مبلغ کل سفارش:</span>
-      <span class="text-lg font-black text-purple-600">${(order.total_price || 0).toLocaleString('fa-IR')} تومان</span>
+      <span class="text-lg font-black text-purple-600">${formatPrice(order.total_price)}</span>
     </div>
   `;
 
-  // رویداد ثبت تحویل سفارش به مشتری
   const btn = card.querySelector('.deliver-btn');
   if (btn) {
     btn.addEventListener('click', async (e) => {
