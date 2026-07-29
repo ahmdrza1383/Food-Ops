@@ -26,6 +26,8 @@ const menuPrice = document.getElementById('menu-price');
 const menuStock = document.getElementById('menu-stock');
 const menuCategory = document.getElementById('menu-category');
 const menuImage = document.getElementById('menu-image');
+const menuImageFile = document.getElementById('menu-image-file');
+const imagePreview = document.getElementById('image-preview');
 const menuActive = document.getElementById('menu-active');
 const categoryFields = document.getElementById('category-fields');
 const menuFields = document.getElementById('menu-fields');
@@ -48,7 +50,7 @@ if (!token) {
 }
 
 logoutBtn.addEventListener('click', () => {
-    closeModal(); 
+    closeModal();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/src/pages/auth/login.html';
@@ -66,7 +68,7 @@ function openModal(title, type, data = null) {
         categoryFields.classList.remove('hidden');
         menuFields.classList.add('hidden');
         // 🔽 اصلاح: پشتیبانی از هر دو فیلد _id و id
-        formId.value = data?._id || data?.id || ''; 
+        formId.value = data?._id || data?.id || '';
         catName.value = data?.name || '';
         catActive.checked = data?.is_active !== false;
     } else if (type === 'menu') {
@@ -78,12 +80,23 @@ function openModal(title, type, data = null) {
         menuDesc.value = data?.description || '';
         menuPrice.value = data?.price || '';
         menuStock.value = data?.stock_quantity || 10;
-        menuImage.value = data?.image_url || '';
+        const imageUrl = data?.image_url || '';
+
+        menuImage.value = imageUrl;
+        menuImageFile.value = '';
+
+        if (imageUrl) {
+            imagePreview.src = imageUrl.startsWith('/') ? `http://localhost:3000${imageUrl}` : imageUrl;
+            imagePreview.classList.remove('hidden');
+        } else {
+            imagePreview.classList.add('hidden');
+        }
+
         menuActive.checked = data?.status !== false;
-        
-        // اگر در حال ویرایش است، دسته‌بندی انتخاب شده را ست کن
-        if (data?.category_id?._id) {
-            menuCategory.value = data.category_id._id;
+
+        const categoryId = data?.category_id?._id || data?.category_id;
+        if (categoryId) {
+            menuCategory.value = categoryId;
         }
     }
 }
@@ -98,6 +111,30 @@ function closeModal() {
 closeModalBtn.addEventListener('click', closeModal);
 modal.addEventListener('click', (e) => {
     if (e.target === modal) closeModal();
+});
+
+menuImageFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            imagePreview.src = event.target.result;
+            imagePreview.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    } else {
+        imagePreview.classList.add('hidden');
+    }
+});
+
+menuImage.addEventListener('input', (e) => {
+    const url = e.target.value.trim();
+    if (url && !menuImageFile.files[0]) {
+        imagePreview.src = url;
+        imagePreview.classList.remove('hidden');
+    } else if (!url) {
+        imagePreview.classList.add('hidden');
+    }
 });
 
 // --- لود کردن اطلاعات ---
@@ -131,11 +168,29 @@ async function loadMenuItems() {
         const response = await fetchAPI('/menu-items');
         const items = response.data?.menuItems || [];
 
+
+        const defaultImage = '/food-sample.jpeg';
+
         menuItemsGrid.innerHTML = items.map(item => {
             const isActive = item.status !== false;
+
+            let imageUrl = item.image_url || defaultImage;
+            if (item.image_url && item.image_url.startsWith('/')) {
+                imageUrl = `http://localhost:3000${item.image_url}`;
+            }
+
             return `
                 <div class="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm flex flex-col gap-2 relative ${!isActive ? 'opacity-60 grayscale' : ''}">
-                    <img src="${item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&q=80'}" class="w-full h-24 object-cover rounded-xl" />
+                    
+                    <!-- 🟢 تغییر اصلی: استفاده از aspect-square به جای h-32 -->
+                    <div class="relative w-full aspect-square overflow-hidden rounded-xl bg-gray-100">
+                        <img 
+                            src="${imageUrl}" 
+                            class="w-full h-full object-cover transition duration-300 hover:scale-105" 
+                            onerror="this.src='${defaultImage}'" 
+                        />
+                    </div>
+                    
                     <div>
                         <h4 class="font-bold text-sm text-slate-800">${item.name}</h4>
                         <p class="text-xs text-slate-500 truncate">${item.description || ''}</p>
@@ -178,7 +233,6 @@ adminForm.addEventListener('submit', async (e) => {
     let endpoint = '';
     let method = 'POST';
 
-    // ✅ ۱. اعتبارسنجی دستی (Frontend Validation)
     if (type === 'category') {
         if (!catName.value.trim()) {
             showToast('لطفاً نام دسته‌بندی را وارد کنید.', 'error');
@@ -206,21 +260,32 @@ adminForm.addEventListener('submit', async (e) => {
             return;
         }
 
-        payload = {
-            name: menuName.value.trim(),
-            description: menuDesc.value.trim(),
-            price: Number(menuPrice.value),
-            stock_quantity: Number(menuStock.value),
-            category_id: menuCategory.value,
-            image_url: menuImage.value.trim(),
-            status: menuActive.checked
-        };
+        const formData = new FormData();
+        formData.append('name', menuName.value.trim());
+        formData.append('description', menuDesc.value.trim());
+        formData.append('price', Number(menuPrice.value));
+        formData.append('stock_quantity', Number(menuStock.value));
+        formData.append('category_id', menuCategory.value);
+        formData.append('status', menuActive.checked);
+
+        if (menuImageFile.files[0]) {
+            formData.append('image', menuImageFile.files[0]);
+        } else if (menuImage.value.trim()) {
+            formData.append('image_url', menuImage.value.trim());
+        }
+
+        payload = formData;
+
         endpoint = '/menu-items';
         if (isEdit) { method = 'PATCH'; endpoint = `/menu-items/${id}`; }
     }
 
     try {
-        await fetchAPI(endpoint, { method, body: JSON.stringify(payload) });
+        await fetchAPI(endpoint, {
+            method,
+            body: payload,
+            headers: type === 'menu' ? {} : undefined
+        });
         closeModal();
         showToast('عملیات با موفقیت انجام شد.', 'success');
         loadCategories();
@@ -240,7 +305,7 @@ function attachCategoryEvents() {
             // اینجا برای سادگی، یک درخواست به سرور می‌زنیم تا اطلاعات دقیق را بگیریم:
             try {
                 const res = await fetchAPI(`/categories/${id}`);
-                const cat = res.data;
+                const cat = res.data.category;
                 openModal('ویرایش دسته‌بندی', 'category', cat);
             } catch (err) { showToast("خطا در دریافت اطلاعات", 'error'); }
         });
@@ -264,8 +329,8 @@ function attachMenuEvents() {
             const id = e.target.dataset.id;
             try {
                 const res = await fetchAPI(`/menu-items/${id}`);
-                const item = res.data;
-                await loadCategories(); // برای پر کردن سلکت باکس مودال غذا
+                const item = res.data.menuItem;
+                await loadCategories();
                 openModal('ویرایش غذا', 'menu', item);
             } catch (err) { showToast("خطا در دریافت اطلاعات", 'error'); }
         });
