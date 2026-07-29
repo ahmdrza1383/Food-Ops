@@ -45,7 +45,7 @@ function redirectByRole(roleName) {
       window.location.href = '/src/pages/kitchen/orders.html';
       break;
     case 'cashier':
-      window.location.href = '/src/pages/cashier/orders.html'; // مسیر صفحه صندوق
+      window.location.href = '/src/pages/cashier/orders.html'; 
       break;
     case 'customer':
     default:

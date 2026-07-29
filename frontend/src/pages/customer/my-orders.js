@@ -7,7 +7,7 @@ const errorBox = document.getElementById('error-box');
 const ordersContainer = document.getElementById('orders-container');
 const actionMessage = document.getElementById('action-message');
 
-// اضافه شدن cardBg برای رنگ پس‌زمینه و حاشیه اختصاصی هر کارت
+// تغییر رنگ "آماده تحویل" به بنفش متمایز (Purple) و حفظ رنگ‌های دیگر
 const STATUS_CONFIG = {
   registered: {
     title: 'ثبت‌ شده',
@@ -21,8 +21,8 @@ const STATUS_CONFIG = {
   },
   ready_for_delivery: {
     title: 'آماده تحویل',
-    classes: 'bg-indigo-100 text-indigo-800 border-indigo-300',
-    cardBg: 'bg-indigo-50/40 border-indigo-200'
+    classes: 'bg-purple-100 text-purple-800 border-purple-300',
+    cardBg: 'bg-purple-50/40 border-purple-200'
   },
   delivered: {
     title: 'تحویل شده',
@@ -94,7 +94,6 @@ function formatPrice(price = 0) {
 function getEstimatedPrepTime(order) {
   const status = order.status;
 
-  // عدم نمایش برای حالت‌های تحویل‌داده‌شده و لغوشده
   if (status === 'delivered' || status === 'canceled') {
     return null;
   }
@@ -102,7 +101,6 @@ function getEstimatedPrepTime(order) {
   const items = order.items || [];
   if (!items.length) return null;
 
-  // استخراج prep_time از داخل آبجکت populate شده‌ی menu_item_id
   const maxPrepTime = Math.max(
     ...items.map(item => item.menu_item_id?.prep_time || 15)
   );
@@ -124,7 +122,6 @@ function createOrderCard(order) {
 
   const prepTimeText = getEstimatedPrepTime(order);
 
-  // خواندن دقیق نام غذا از فیلد menu_item_id طبق اسکیما
   const itemsHTML = (order.items || [])
     .map(item => {
       const foodName = item.menu_item_id?.name || 'آیتم غذایی';
@@ -144,7 +141,6 @@ function createOrderCard(order) {
     })
     .join('');
 
-  // دکمه لغو فقط زمانی که وضعیت registered باشد
   const cancelButtonHTML =
     order.status === 'registered'
       ? `
@@ -277,10 +273,8 @@ async function loadOrders() {
       return;
     }
 
-    // مرتب‌سازی نزولی بر اساس زمان ثبت سفارش (جدیدترین در اول لیست)
     orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    // رندر کارت‌ها در صفحه
     ordersContainer.innerHTML = orders.map(order => createOrderCard(order)).join('');
 
   } catch (error) {
@@ -290,7 +284,6 @@ async function loadOrders() {
   }
 }
 
-// مدیریت کلیک روی دکمه‌های لغو سفارش
 ordersContainer.addEventListener('click', (e) => {
   const cancelBtn = e.target.closest('.cancel-order-btn');
   if (cancelBtn) {
@@ -299,5 +292,4 @@ ordersContainer.addEventListener('click', (e) => {
   }
 });
 
-// بارگذاری سفارش‌ها بعد از لود کامل صفحه
 document.addEventListener('DOMContentLoaded', loadOrders);
