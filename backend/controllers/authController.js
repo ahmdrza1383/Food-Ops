@@ -77,7 +77,7 @@ exports.login = async (req, res) => {
         const isMatch = user ? await bcrypt.compare(password, user.password) : false;
 
         if (!user || !isMatch) {
-            return res.status(401).json({
+            return res.status(200).json({
                 success: false,
                 message: 'شماره تماس یا رمز عبور اشتباه است.'
             });
