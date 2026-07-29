@@ -10,11 +10,10 @@ const messageBox = document.getElementById('message-box');
  */
 function showMessage(text, type = 'error') {
   messageBox.textContent = text;
-  messageBox.className = `mb-4 p-3 rounded-xl text-sm font-medium text-center ${
-    type === 'success'
+  messageBox.className = `mb-4 p-3 rounded-3xl text-sm font-medium text-center ${type === 'success'
       ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
       : 'bg-rose-50 text-rose-700 border border-rose-200'
-  }`;
+    }`;
   messageBox.classList.remove('hidden');
 }
 

@@ -11,11 +11,10 @@ const passwordInput = document.getElementById('password');
  */
 function showMessage(text, type = 'error') {
   messageBox.textContent = text;
-  messageBox.className = `mb-6 p-4 rounded-2xl text-xs font-bold text-center transition block ${
-    type === 'success'
-      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-      : 'bg-rose-50 text-rose-700 border border-rose-200 animate-pulse'
-  }`;
+  messageBox.className = `mb-6 p-4 rounded-3xl text-xs font-bold text-center transition block ${type === 'success'
+    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+    : 'bg-rose-50 text-rose-700 border border-rose-200 animate-pulse'
+    }`;
   messageBox.classList.remove('hidden');
 }
 
@@ -45,7 +44,7 @@ function redirectByRole(roleName) {
       window.location.href = '/src/pages/kitchen/orders.html';
       break;
     case 'cashier':
-      window.location.href = '/src/pages/cashier/orders.html'; 
+      window.location.href = '/src/pages/cashier/orders.html';
       break;
     case 'customer':
     default:
@@ -69,6 +68,12 @@ loginForm.addEventListener('submit', async (e) => {
     return false;
   }
 
+  const phoneRegex = /^09\d{9}$/;
+  if (!phoneRegex.test(phone_number.trim())) {
+    showMessage('شماره موبایل وارد شده معتبر نیست.', 'error');
+    return false;
+  }
+
   // تغییر ظاهر دکمه
   submitBtn.disabled = true;
   submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
@@ -86,7 +91,7 @@ loginForm.addEventListener('submit', async (e) => {
   // ۱. بررسی ارور منطقی از سمت بک‌اند (success: false)
   // ----------------------------------------------------------------
   if (response && response.success === false) {
-    
+
     // بازگرداندن دکمه به حالت اولیه
     submitBtn.disabled = false;
     submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
@@ -94,7 +99,7 @@ loginForm.addEventListener('submit', async (e) => {
 
     // نمایش پیام خطا (که روی صفحه می‌مونه تا کاربر اصلاح کنه)
     showMessage(response.message || 'اطلاعات وارد شده اشتباه است.', 'error');
-    
+
     // انتخاب فیلد رمز عبور برای اصلاح سریع‌تر
     passwordInput.select();
 
@@ -142,7 +147,7 @@ loginForm.addEventListener('submit', async (e) => {
       submitBtn.disabled = false;
       submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
       submitBtn.innerHTML = '<span>ورود به سیستم</span>';
-      
+
       showMessage('خطایی در پردازش اطلاعات رخ داد.', 'error');
     }
   }
