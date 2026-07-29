@@ -23,6 +23,11 @@ const cartSubtotalEl = document.getElementById('cart-subtotal');
 const cartTotalEl = document.getElementById('cart-total');
 const checkoutBtn = document.getElementById('checkout-btn');
 
+const foodModal = document.getElementById('food-modal');
+const foodModalBackdrop = document.getElementById('food-modal-backdrop');
+const foodModalContent = document.getElementById('food-modal-content');
+const foodModalPanel = document.getElementById('food-modal-panel');
+
 async function init() {
   setupUserHeader();
   setupCartDrawer();
@@ -44,7 +49,9 @@ function setupUserHeader() {
                 <span class="text-xs bg-orange-100 text-primary px-3 py-1.5 rounded-xl font-bold">
                     ${user.fullname}
                 </span>
-                <button id="logout-btn" class="text-xs text-rose-500 hover:underline">خروج</button>
+                <button id="logout-btn" class="bg-rose-50 text-rose-600 hover:bg-rose-100 px-3 py-1.5 rounded-xl text-xs font-bold transition">
+                  <i class="fa-solid fa-arrow-right-from-bracket ml-1"></i> خروج
+                </button>
             </div>
         `;
 
@@ -128,7 +135,10 @@ function renderMenuItems() {
     const defaultImage = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
 
     return `
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition flex flex-col overflow-hidden group">
+            <div 
+                data-id="${item._id}"
+                class="food-card bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition flex flex-col overflow-hidden group cursor-pointer"
+            >
                 <div class="relative h-44 overflow-hidden bg-gray-100">
                     <img src="${item.image_url || defaultImage}" alt="${item.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                     ${isOutOfStock ? `<span class="absolute top-3 right-3 bg-rose-500/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full">ناموجود</span>` : ''}
@@ -144,9 +154,9 @@ function renderMenuItems() {
                         <button 
                             data-id="${item._id}"
                             class="add-to-cart-btn px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1 ${isOutOfStock
-        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-        : 'bg-orange-50 text-primary hover:bg-primary hover:text-white'
-      }"
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-orange-50 text-primary hover:bg-primary hover:text-white'
+                            }"
                             ${isOutOfStock ? 'disabled' : ''}
                         >
                             <span>+</span>
@@ -158,13 +168,107 @@ function renderMenuItems() {
         `;
   }).join('');
 
+  // رویداد کلیک روی کل کارت برای باز کردن مودال جزئیات
+  document.querySelectorAll('.food-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      // اگر روی دکمه "افزودن" کلیک شد، مودال باز نشود و مستقیم به سبد برود
+      if (e.target.closest('.add-to-cart-btn')) return;
+      
+      const itemId = card.dataset.id;
+      openFoodModal(itemId);
+    });
+  });
+
+  // رویداد کلیک دکمه‌های افزودن به سبد خرید
+  document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation(); // جلوگیری از باز شدن مودال موقع کلیک روی افزودن
+      const itemId = e.currentTarget.dataset.id;
+      addToCart(itemId);
+    });
+  });
+}
+
+// ۳. توابع جدید برای باز کردن و بستن مودال جزئیات غذا
+function openFoodModal(itemId) {
+  const item = allMenuItems.find(i => i._id === itemId);
+  if (!item) return;
+
+  const isOutOfStock = !item.status || item.stock_quantity <= 0;
+  const defaultImage = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80';
+
+  // پر کردن محتوای مودال با جزئیات کامل و description
+  foodModalContent.innerHTML = `
+    <div class="relative h-60 bg-gray-100">
+      <img src="${item.image_url || defaultImage}" alt="${item.name}" class="w-full h-full object-cover" />
+      <button id="close-food-modal-btn" class="absolute top-4 left-4 bg-white/80 hover:bg-white text-gray-700 w-9 h-9 rounded-full flex items-center justify-center font-bold shadow-md transition">✕</button>
+      ${isOutOfStock ? `<span class="absolute top-4 right-4 bg-rose-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow">ناموجود</span>` : ''}
+    </div>
+
+    <div class="p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-2xl font-black text-slate-800">${item.name}</h2>
+        <span class="text-lg font-extrabold text-primary">${formatPrice(item.price)}</span>
+      </div>
+
+      <div class="flex items-center gap-4 text-xs font-semibold text-gray-500 bg-gray-50 p-3 rounded-2xl">
+        <span>⏱️ زمان پخت: ${item.estimated_prep_time || 15} دقیقه</span>
+        <span>📦 موجودی: ${isOutOfStock ? '۰' : `${item.stock_quantity} عدد`}</span>
+      </div>
+
+      <div>
+        <h4 class="text-xs font-bold text-gray-400 uppercase mb-1">توضیحات غذا</h4>
+        <p class="text-gray-600 text-sm leading-relaxed">${item.description || 'توضیحات تکمیلی برای این غذا ثبت نشده است.'}</p>
+      </div>
+
+      <div class="pt-4 border-t">
+        <button 
+          id="modal-add-to-cart-btn"
+          class="w-full py-3 rounded-2xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-lg ${isOutOfStock
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            : 'bg-primary text-white hover:bg-primary-hover shadow-orange-500/20'
+          }"
+          ${isOutOfStock ? 'disabled' : ''}
+        >
+          <span>+ افزودن به سبد خرید</span>
+        </button>
+      </div>
+    </div>
+  `;
+
+  // باز کردن مودال
+  foodModal.classList.remove('opacity-0', 'pointer-events-none');
+  foodModalPanel.classList.remove('scale-95');
+  foodModalPanel.classList.add('scale-100');
+
+  // لیسنر بستن مودال
+  document.getElementById('close-food-modal-btn')?.addEventListener('click', closeFoodModal);
+
+  // لیسنر افزودن به سبد از داخل مودال
+  document.getElementById('modal-add-to-cart-btn')?.addEventListener('click', () => {
+    addToCart(itemId);
+    closeFoodModal();
+  });
+}
+
+function closeFoodModal() {
+  foodModalPanel.classList.remove('scale-100');
+  foodModalPanel.classList.add('scale-95');
+  foodModal.classList.add('opacity-0');
+  setTimeout(() => {
+    foodModal.classList.add('pointer-events-none');
+  }, 300);
+}
+
+// ۴. اضافه کردن لیسنر کلیک روی پس‌زمینه برای بستن مودال (داخل تابع init یا پایین فایل)
+foodModalBackdrop?.addEventListener('click', closeFoodModal);
+
   document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const itemId = e.currentTarget.dataset.id;
       addToCart(itemId);
     });
   });
-}
 
 function addToCart(itemId) {
   const item = allMenuItems.find(i => i._id === itemId);
