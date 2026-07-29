@@ -1,6 +1,7 @@
 export function formatPrice(amount) {
     if (typeof amount !== 'number') return '۰ تومان';
-    const formatted = new Intl.NumberFormat('fa-IR').format(amount);
+    const price = Math.round(Number(amount) || 0);
+    const formatted = new Intl.NumberFormat('fa-IR').format(price);
     return `${formatted} تومان`;
 }
 
