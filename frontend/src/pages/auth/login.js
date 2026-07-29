@@ -32,18 +32,20 @@ phoneInput.addEventListener('input', hideMessageOnInput);
 passwordInput.addEventListener('input', hideMessageOnInput);
 
 /**
- * مسیریابی کاربر بر اساس فیلد نام نقش
+ * مسیریابی کاربر بر اساس فیلد نام نقش (منطبق با ساختار جدید نقش‌ها)
  */
 function redirectByRole(roleName) {
-  const normalizedRole = String(roleName || 'customer').toLowerCase();
+  const normalizedRole = String(roleName || 'customer').toLowerCase().trim();
 
   switch (normalizedRole) {
     case 'admin':
       window.location.href = '/src/pages/admin/dashboard.html';
       break;
-    case 'kitchen':
-    case 'staff':
+    case 'kitchen staff':
       window.location.href = '/src/pages/kitchen/orders.html';
+      break;
+    case 'cashier':
+      window.location.href = '/src/pages/cashier/orders.html'; // مسیر صفحه صندوق
       break;
     case 'customer':
     default:
@@ -90,10 +92,10 @@ loginForm.addEventListener('submit', async (e) => {
     submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
     submitBtn.innerHTML = '<span>ورود به سیستم</span>';
 
-    // نمایش پیام خطا (که حالا دیگه پاک نمیشه و می‌مونه)
+    // نمایش پیام خطا (که روی صفحه می‌مونه تا کاربر اصلاح کنه)
     showMessage(response.message || 'اطلاعات وارد شده اشتباه است.', 'error');
     
-    // انتخاب فیلد رمز عبور برای اصلاح سریع‌تر توسط کاربر
+    // انتخاب فیلد رمز عبور برای اصلاح سریع‌تر
     passwordInput.select();
 
   } else {

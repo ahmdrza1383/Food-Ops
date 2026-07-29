@@ -49,7 +49,9 @@ function setupUserHeader() {
                 <span class="text-xs bg-orange-100 text-primary px-3 py-1.5 rounded-xl font-bold">
                     ${user.fullname}
                 </span>
-                <button id="logout-btn" class="text-xs text-rose-500 hover:underline">خروج</button>
+                <button id="logout-btn" class="bg-rose-50 text-rose-600 hover:bg-rose-100 px-3 py-1.5 rounded-xl text-xs font-bold transition">
+                  <i class="fa-solid fa-arrow-right-from-bracket ml-1"></i> خروج
+                </button>
             </div>
         `;
 
