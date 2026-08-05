@@ -143,7 +143,8 @@ async function seedFullDatabase() {
             { code: 'FIRST10', discount_percent: 10, expiration_date: new Date('2027-01-01'), is_active: true },
             { code: 'FOOD20', discount_percent: 20, expiration_date: new Date('2027-06-01'), is_active: true },
             { code: 'WELCOME', discount_percent: 15, expiration_date: new Date('2026-12-31'), is_active: true },
-            { code: 'HOLIDAY', discount_percent: 25, expiration_date: new Date('2026-10-01'), is_active: false }
+            { code: 'HOLIDAY', discount_percent: 25, expiration_date: new Date('2026-10-01'), is_active: false },
+            { code: "test", discount_percent: 20, expiration_date: new Date("2026-08-03T23:59:59.000Z"), is_active: true}
         ]);
         const discountMap = {};
         discounts.forEach(d => { discountMap[d.code] = d._id; });

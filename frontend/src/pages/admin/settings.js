@@ -27,6 +27,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) { }
     }
 
+    // --- دریافت و نمایش ساعت کاری و وضعیت قبلی سیستم ---
+    async function loadCurrentSettings() {
+        try {
+            const response = await fetchAPI('/admin/settings/working-hours');
+            
+            // با توجه به اینکه بک‌اند آبجکت data را می‌فرستد
+            const settings = response.data || response; 
+
+            if (settings) {
+                if (settings.opening_time) openingTimeInput.value = settings.opening_time;
+                if (settings.closing_time) closingTimeInput.value = settings.closing_time;
+                if (typeof settings.is_accepting_orders !== 'undefined') {
+                    isAcceptingOrdersInput.checked = settings.is_accepting_orders;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading settings:', error);
+            showToast(error.message || 'خطا در دریافت اطلاعات ساعت کاری قبلی.', 'error');
+        }
+    }
+
+    // اجرای تابع لود تنظیمات در ابتدا
+    loadCurrentSettings();
+
     // دکمه خروج
     logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('token');
@@ -34,7 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '/src/pages/auth/login.html';
     });
 
-    // رویداد سابمیت فرم برای آپدیت تنظیمات با استفاده از fetchAPI
+    // رویداد سابمیت فرم برای آپدیت تنظیمات
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -43,7 +67,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const is_accepting_orders = isAcceptingOrdersInput.checked;
 
         try {
-            // ارسال صریح به صورت JSON با استفاده از fetchAPI
             await fetchAPI('/admin/settings/working-hours', {
                 method: 'PUT',
                 headers: {

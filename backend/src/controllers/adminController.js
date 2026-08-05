@@ -563,3 +563,33 @@ exports.updateSystemSettings = async (req, res) => {
         });
     }
 };
+
+// @route   GET /api/admin/settings/working-hours
+// @desc    دریافت تنظیمات ساعت کاری و وضعیت پذیرش سفارش
+// @access  Private (Admin only)
+// @route   GET /api/admin/settings/working-hours
+// @desc    دریافت تنظیمات ساعت کاری و وضعیت پذیرش سفارش
+// @access  Private (Admin only)
+exports.getSystemSettings = async (req, res) => {
+    try {
+        // نام مدل باید دقیقاً SystemSetting باشد (بدون s آخر)
+        let settings = await SystemSetting.findOne(); 
+        
+        // اگر تنظیماتی وجود نداشت، آبجکت خالی یا مقادیر خالی برمی‌گردانیم
+        if (!settings) {
+            settings = {
+                opening_time: '',
+                closing_time: '',
+                is_accepting_orders: false
+            };
+        }
+
+        // خروجی را دقیقاً مطابق با ساختار بقیه APIها می‌فرستیم
+        res.status(200).json({
+            status: 'success',
+            data: settings
+        });
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: error.message });
+    }
+};

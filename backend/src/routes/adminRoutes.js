@@ -51,4 +51,9 @@ router.patch('/discounts/:id/status', adminController.toggleDiscountStatus);
 // @access  Private (Admin only)
 router.put('/settings/working-hours', adminController.updateSystemSettings);
 
+// @route   GET /api/admin/settings/working-hours
+// @desc    دریافت تنظیمات ساعت کاری و وضعیت پذیرش سفارش
+// @access  Private (Admin only)
+router.get('/settings/working-hours', adminController.getSystemSettings);
+
 module.exports = router;
