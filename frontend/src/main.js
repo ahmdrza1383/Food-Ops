@@ -129,9 +129,13 @@ async function loadMenuItems() {
 
 function renderMenuItems() {
   const filteredItems = allMenuItems.filter(item => {
-    const matchesCategory = !selectedCategoryId || (item.category_id && item.category_id._id === selectedCategoryId);
+    const category = categories.find(c => c._id === (item.category_id?._id || item.category_id));
+    const isCategoryActive = !category || category.is_active;
+
+    const matchesCategory = !selectedCategoryId || (item.category_id && (item.category_id._id === selectedCategoryId || item.category_id === selectedCategoryId));
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    
+    return isCategoryActive && matchesCategory && matchesSearch;
   });
 
   if (filteredItems.length === 0) {
