@@ -14,6 +14,9 @@ const deliveryRoutes = require('./routes/deliveryRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 
 
+
+// اجازه خواندن فایل‌های داخل پوشه public به صورت استاتیک
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -24,6 +27,8 @@ app.use(express.json());
 app.use(sanitize);
 
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 const MONGO_URI = process.env.MONGO_URI;
 

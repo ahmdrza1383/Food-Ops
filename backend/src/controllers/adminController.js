@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const MenuItem = require('../models/MenuItem');
 const User = require('../models/User');
 const Role = require('../models/Role');
+const Discount = require('../models/Discount'); 
 const mongoose = require('mongoose');
 
 const VALID_SORT_FIELDS = ['createdAt', 'updatedAt', 'final_price', 'total_price', 'status'];
@@ -444,5 +445,86 @@ exports.updateUserRole = async (req, res) => {
             message: 'خطا در تغییر نقش کاربر.',
             error: error.message
         });
+    }
+};
+
+// @desc    دریافت همه کدهای تخفیف
+// @route   GET /api/admin/discounts
+// @access  Private (Admin only)
+exports.getDiscounts = async (req, res) => {
+    try {
+        const discounts = await Discount.find().sort({ createdAt: -1 });
+        res.status(200).json({
+            status: 'success',
+            data: { discounts }
+        });
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: 'خطا در دریافت کدهای تخفیف.' });
+    }
+};
+
+// @desc    ساخت کد تخفیف جدید
+// @route   POST /api/admin/discounts
+// @access  Private (Admin only)
+exports.createDiscount = async (req, res) => {
+    try {
+        const { code, discount_percent, expiration_date, is_active } = req.body;
+
+        const newDiscount = await Discount.create({
+            code: code.toUpperCase(),
+            discount_percent,
+            expiration_date,
+            is_active
+        });
+
+        res.status(201).json({
+            status: 'success',
+            data: { discount: newDiscount }
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ status: 'error', message: 'این کد تخفیف قبلاً ثبت شده است.' });
+        }
+        res.status(400).json({ status: 'error', message: error.message });
+    }
+};
+
+// @desc    حذف کد تخفیف
+// @route   DELETE /api/admin/discounts/:id
+// @access  Private (Admin only)
+exports.deleteDiscount = async (req, res) => {
+    try {
+        const discount = await Discount.findByIdAndDelete(req.params.id);
+        
+        if (!discount) {
+            return res.status(404).json({ status: 'error', message: 'کد تخفیف یافت نشد.' });
+        }
+
+        res.status(200).json({ status: 'success', message: 'کد تخفیف با موفقیت حذف شد.' });
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: 'خطا در حذف کد تخفیف.' });
+    }
+};
+
+// @route   PATCH /api/admin/discounts/:id/status
+// @desc    تغییر وضعیت کد تخفیف
+// @access  Private (Admin only)
+exports.toggleDiscountStatus = async (req, res) => {
+    try {
+        const { is_active } = req.body;
+        
+        const discount = await Discount.findByIdAndUpdate(
+            req.params.id,
+            { is_active },
+            { new: true, runValidators: true }
+        );
+
+        if (!discount) {
+            return res.status(404).json({ status: 'error', message: 'کد تخفیف یافت نشد.' });
+        }
+
+        res.status(200).json({ status: 'success', message: 'وضعیت با موفقیت تغییر کرد.' });
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: 'خطا در تغییر وضعیت کد تخفیف.' });
     }
 };

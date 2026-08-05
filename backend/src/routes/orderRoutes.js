@@ -12,5 +12,6 @@ router.patch('/:id/cancel', customerOnly, orderController.cancelOrder);
 router.patch('/:id/start', kitchenStaffOrAdmin, orderController.startOrder);
 router.patch('/:id/ready', kitchenStaffOrAdmin, orderController.readyOrder);
 router.patch('/:id/deliver', cashierOrAdmin, orderController.deliverOrder);
+router.post('/validate-discount', protect, orderController.validateDiscount);
 
 module.exports = router;

@@ -1,7 +1,6 @@
 import { fetchAPI } from '../../services/api.js';
 import { formatPrice, showToast } from '../../utils/helpers.js';
 
-
 // --- عناصر DOM ---
 const logoutBtn = document.getElementById('logout-btn');
 const userNameSpan = document.getElementById('user-name');
@@ -32,6 +31,14 @@ const menuActive = document.getElementById('menu-active');
 const categoryFields = document.getElementById('category-fields');
 const menuFields = document.getElementById('menu-fields');
 
+// --- تابع کمکی برای آدرس عکس (دیتابیس یا دیفالت) ---
+function getImageUrl(url) {
+    const defaultImage = '/food-sample.jpeg'; // عکس دیفالت پنل ادمین
+    if (!url) return defaultImage; // اگر عکسی در دیتابیس نبود
+    if (url.startsWith('http')) return url; // اگر آدرس کامل بود
+    return `http://localhost:3000${url.startsWith('/') ? '' : '/'}${url}`; // اگر فایل روی سرور لوکال بود
+}
+
 // --- احراز هویت ---
 const token = localStorage.getItem('token');
 const userStr = localStorage.getItem('user');
@@ -41,7 +48,6 @@ if (!token) {
     try {
         const user = JSON.parse(userStr);
         userNameSpan.textContent = user.fullname || 'admin';
-        // بررسی امنیتی: اگر نقش ادمین نیست، به خانه برگرد (لایه دوم امنیت در فرانت)
         const role = (user.roleName || '').toLowerCase();
         if (role !== 'admin') {
             window.location.href = '/';
@@ -67,26 +73,24 @@ function openModal(title, type, data = null) {
     if (type === 'category') {
         categoryFields.classList.remove('hidden');
         menuFields.classList.add('hidden');
-        // 🔽 اصلاح: پشتیبانی از هر دو فیلد _id و id
         formId.value = data?._id || data?.id || '';
         catName.value = data?.name || '';
         catActive.checked = data?.is_active !== false;
     } else if (type === 'menu') {
         categoryFields.classList.add('hidden');
         menuFields.classList.remove('hidden');
-        // 🔽 اصلاح: پشتیبانی از هر دو فیلد _id و id
         formId.value = data?._id || data?.id || '';
         menuName.value = data?.name || '';
         menuDesc.value = data?.description || '';
         menuPrice.value = data?.price || '';
         menuStock.value = data?.stock_quantity || 10;
+        
         const imageUrl = data?.image_url || '';
-
         menuImage.value = imageUrl;
         menuImageFile.value = '';
 
         if (imageUrl) {
-            imagePreview.src = imageUrl.startsWith('/') ? `http://localhost:3000${imageUrl}` : imageUrl;
+            imagePreview.src = getImageUrl(imageUrl);
             imagePreview.classList.remove('hidden');
         } else {
             imagePreview.classList.add('hidden');
@@ -143,12 +147,10 @@ async function loadCategories() {
         const response = await fetchAPI('/categories');
         const categories = response.data?.categories || [];
 
-        // پر کردن سلکت باکس در مودال غذا
         menuCategory.innerHTML = categories.map(cat => `
             <option value="${cat._id}">${cat.name}</option>
         `).join('');
 
-        // نمایش در صفحه به صورت تگ
         categoriesContainer.innerHTML = categories.map(cat => `
             <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full text-xs font-medium text-slate-700">
                 <span>${cat.name}</span>
@@ -168,26 +170,19 @@ async function loadMenuItems() {
         const response = await fetchAPI('/menu-items');
         const items = response.data?.menuItems || [];
 
-
-        const defaultImage = '/food-sample.jpeg';
-
         menuItemsGrid.innerHTML = items.map(item => {
             const isActive = item.status !== false;
-
-            let imageUrl = item.image_url || defaultImage;
-            if (item.image_url && item.image_url.startsWith('/')) {
-                imageUrl = `http://localhost:3000${item.image_url}`;
-            }
+            
+            // استفاده از تابع بررسی عکس دیتابیس یا دیفالت
+            const finalImageUrl = getImageUrl(item.image_url);
 
             return `
                 <div class="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm flex flex-col gap-2 relative ${!isActive ? 'opacity-60 grayscale' : ''}">
-                    
-                    <!-- 🟢 تغییر اصلی: استفاده از aspect-square به جای h-32 -->
                     <div class="relative w-full aspect-square overflow-hidden rounded-xl bg-gray-100">
                         <img 
-                            src="${imageUrl}" 
+                            src="${finalImageUrl}" 
                             class="w-full h-full object-cover transition duration-300 hover:scale-105" 
-                            onerror="this.src='${defaultImage}'" 
+                            onerror="this.src='/food-sample.jpeg'" 
                         />
                     </div>
                     
@@ -216,12 +211,10 @@ async function loadMenuItems() {
 // --- رویدادهای دکمه‌ها (Add) ---
 document.getElementById('add-category-btn').addEventListener('click', () => openModal('افزودن دسته‌بندی جدید', 'category'));
 document.getElementById('add-menu-btn').addEventListener('click', async () => {
-    // قبل از باز کردن مودال غذا، لیست دسته‌بندی‌ها را آپدیت می‌کنیم
     await loadCategories();
     openModal('افزودن غذای جدید', 'menu');
 });
 
-// --- مدیریت Submit فرم ---
 // --- مدیریت Submit فرم ---
 adminForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -275,7 +268,6 @@ adminForm.addEventListener('submit', async (e) => {
         }
 
         payload = formData;
-
         endpoint = '/menu-items';
         if (isEdit) { method = 'PATCH'; endpoint = `/menu-items/${id}`; }
     }
@@ -295,14 +287,10 @@ adminForm.addEventListener('submit', async (e) => {
     }
 });
 
-// --- اتصال رویدادهای دینامیک ---
 function attachCategoryEvents() {
     document.querySelectorAll('.edit-cat-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const id = e.target.dataset.id;
-            // برای ویرایش، احتیاج به اطلاعات کامل دسته‌بندی داریم. 
-            // فرض می‌کنیم اطلاعات ساده را داریم یا دوباره از سرور می‌گیریم.
-            // اینجا برای سادگی، یک درخواست به سرور می‌زنیم تا اطلاعات دقیق را بگیریم:
             try {
                 const res = await fetchAPI(`/categories/${id}`);
                 const cat = res.data.category;
@@ -348,7 +336,6 @@ function attachMenuEvents() {
     });
 }
 
-// --- اجرای اولیه ---
 document.addEventListener('DOMContentLoaded', () => {
     loadCategories();
     loadMenuItems();

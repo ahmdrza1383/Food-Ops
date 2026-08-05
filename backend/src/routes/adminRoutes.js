@@ -26,4 +26,24 @@ router.get('/reports/items', adminController.getItemsReport);
 // @access  Private (Admin only)
 router.patch('/users/:id/role', adminController.updateUserRole);
 
+// @route   GET /api/admin/discounts
+// @desc    دریافت لیست کدهای تخفیف
+// @access  Private (Admin only)
+router.get('/discounts', adminController.getDiscounts);
+
+// @route   POST /api/admin/discounts
+// @desc    ایجاد کد تخفیف جدید
+// @access  Private (Admin only)
+router.post('/discounts', adminController.createDiscount);
+
+// @route   DELETE /api/admin/discounts/:id
+// @desc    حذف کد تخفیف
+// @access  Private (Admin only)
+router.delete('/discounts/:id', adminController.deleteDiscount);
+
+// @route   PATCH /api/admin/discounts/:id/status
+// @desc    تغییر وضعیت کد تخفیف
+// @access  Private (Admin only)
+router.patch('/discounts/:id/status', adminController.toggleDiscountStatus);
+
 module.exports = router;

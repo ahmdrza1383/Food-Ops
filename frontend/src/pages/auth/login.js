@@ -41,10 +41,10 @@ function redirectByRole(roleName) {
       window.location.href = '/src/pages/admin/menu-manager.html';
       break;
     case 'kitchen staff':
-      window.location.href = '/src/pages/kitchen/orders.html';
+      window.location.href = '/src/pages/kitchen/dashboard.html';
       break;
     case 'cashier':
-      window.location.href = '/src/pages/cashier/orders.html';
+      window.location.href = '/src/pages/cashier/dashboard.html';
       break;
     case 'customer':
     default:

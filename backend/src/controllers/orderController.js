@@ -457,3 +457,53 @@ exports.deliverOrder = async (req, res) => {
         });
     }
 };
+
+// @desc    بررسی و اعتبارسنجی کد تخفیف پیش از ثبت سفارش
+// @route   POST /api/orders/validate-discount
+// @access  Private (Customer)
+exports.validateDiscount = async (req, res) => {
+    try {
+        const { code } = req.body;
+        
+        if (!code) {
+            return res.status(400).json({ status: 'fail', message: 'لطفاً کد تخفیف را وارد کنید.' });
+        }
+
+        // جستجوی کد تخفیف فعال در دیتابیس
+        const discount = await Discount.findOne({
+            code: code.toUpperCase(),
+            is_active: true
+        });
+
+        if (!discount) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'کد تخفیف وارد شده نامعتبر است یا غیرفعال شده است.'
+            });
+        }
+
+        // بررسی تاریخ انقضا
+        if (new Date(discount.expiration_date) < new Date()) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'متأسفانه این کد تخفیف منقضی شده است.'
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            message: 'کد تخفیف معتبر است.',
+            data: {
+                code: discount.code,
+                discount_percent: discount.discount_percent
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'خطا در بررسی کد تخفیف.',
+            error: error.message
+        });
+    }
+};

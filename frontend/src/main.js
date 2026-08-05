@@ -23,10 +23,25 @@ const cartSubtotalEl = document.getElementById('cart-subtotal');
 const cartTotalEl = document.getElementById('cart-total');
 const checkoutBtn = document.getElementById('checkout-btn');
 
+// متغیرهای مربوط به کد تخفیف
+const applyDiscountBtn = document.getElementById('apply-discount-btn');
+const discountInput = document.getElementById('discount-input');
+const discountRow = document.getElementById('discount-row');
+const cartDiscountEl = document.getElementById('cart-discount');
+let currentDiscount = null;
+
 const foodModal = document.getElementById('food-modal');
 const foodModalBackdrop = document.getElementById('food-modal-backdrop');
 const foodModalContent = document.getElementById('food-modal-content');
 const foodModalPanel = document.getElementById('food-modal-panel');
+
+// --- تابع کمکی برای مدیریت عکس‌های دیتابیس در سمت مشتری ---
+function getImageUrl(url) {
+    const defaultImage = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
+    if (!url) return defaultImage; // اگر خالی بود عکس دیفالت بده
+    if (url.startsWith('http')) return url; // اگر آدرس کامل بود همونو بده
+    return `http://localhost:3000${url.startsWith('/') ? '' : '/'}${url}`; // در غیر اینصورت به سرور وصلش کن
+}
 
 async function init() {
   setupUserHeader();
@@ -103,7 +118,6 @@ function renderCategories() {
 
 async function loadMenuItems() {
   menuGrid.innerHTML = getSkeletonLoader();
-
   try {
     const response = await fetchAPI('/menu-items');
     allMenuItems = response.data?.menuItems || [];
@@ -132,7 +146,7 @@ function renderMenuItems() {
 
   menuGrid.innerHTML = filteredItems.map(item => {
     const isOutOfStock = !item.status || item.stock_quantity <= 0;
-    const defaultImage = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
+    const finalImageUrl = getImageUrl(item.image_url);
 
     return `
             <div 
@@ -140,7 +154,7 @@ function renderMenuItems() {
                 class="food-card bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition flex flex-col overflow-hidden group cursor-pointer"
             >
                 <div class="relative h-44 overflow-hidden bg-gray-100">
-                    <img src="${item.image_url || defaultImage}" alt="${item.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                    <img src="${finalImageUrl}" alt="${item.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                     ${isOutOfStock ? `<span class="absolute top-3 right-3 bg-rose-500/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full">ناموجود</span>` : ''}
                 </div>
                 
@@ -168,39 +182,33 @@ function renderMenuItems() {
         `;
   }).join('');
 
-  // رویداد کلیک روی کل کارت برای باز کردن مودال جزئیات
   document.querySelectorAll('.food-card').forEach(card => {
     card.addEventListener('click', (e) => {
-      // اگر روی دکمه "افزودن" کلیک شد، مودال باز نشود و مستقیم به سبد برود
       if (e.target.closest('.add-to-cart-btn')) return;
-      
       const itemId = card.dataset.id;
       openFoodModal(itemId);
     });
   });
 
-  // رویداد کلیک دکمه‌های افزودن به سبد خرید
   document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      e.stopPropagation(); // جلوگیری از باز شدن مودال موقع کلیک روی افزودن
+      e.stopPropagation(); 
       const itemId = e.currentTarget.dataset.id;
       addToCart(itemId);
     });
   });
 }
 
-// ۳. توابع جدید برای باز کردن و بستن مودال جزئیات غذا
 function openFoodModal(itemId) {
   const item = allMenuItems.find(i => i._id === itemId);
   if (!item) return;
 
   const isOutOfStock = !item.status || item.stock_quantity <= 0;
-  const defaultImage = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80';
+  const finalImageUrl = getImageUrl(item.image_url);
 
-  // پر کردن محتوای مودال با جزئیات کامل و description
   foodModalContent.innerHTML = `
     <div class="relative h-60 bg-gray-100">
-      <img src="${item.image_url || defaultImage}" alt="${item.name}" class="w-full h-full object-cover" />
+      <img src="${finalImageUrl}" alt="${item.name}" class="w-full h-full object-cover" />
       <button id="close-food-modal-btn" class="absolute top-4 left-4 bg-white/80 hover:bg-white text-gray-700 w-9 h-9 rounded-full flex items-center justify-center font-bold shadow-md transition">✕</button>
       ${isOutOfStock ? `<span class="absolute top-4 right-4 bg-rose-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow">ناموجود</span>` : ''}
     </div>
@@ -236,15 +244,12 @@ function openFoodModal(itemId) {
     </div>
   `;
 
-  // باز کردن مودال
   foodModal.classList.remove('opacity-0', 'pointer-events-none');
   foodModalPanel.classList.remove('scale-95');
   foodModalPanel.classList.add('scale-100');
 
-  // لیسنر بستن مودال
   document.getElementById('close-food-modal-btn')?.addEventListener('click', closeFoodModal);
 
-  // لیسنر افزودن به سبد از داخل مودال
   document.getElementById('modal-add-to-cart-btn')?.addEventListener('click', () => {
     addToCart(itemId);
     closeFoodModal();
@@ -260,15 +265,7 @@ function closeFoodModal() {
   }, 300);
 }
 
-// ۴. اضافه کردن لیسنر کلیک روی پس‌زمینه برای بستن مودال (داخل تابع init یا پایین فایل)
 foodModalBackdrop?.addEventListener('click', closeFoodModal);
-
-  document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const itemId = e.currentTarget.dataset.id;
-      addToCart(itemId);
-    });
-  });
 
 function addToCart(itemId) {
   const item = allMenuItems.find(i => i._id === itemId);
@@ -295,7 +292,6 @@ function addToCart(itemId) {
     });
     showToast(`${item.name} به سبد خرید اضافه شد`);
   }
-
   saveCart();
   renderCart();
 }
@@ -318,6 +314,33 @@ function saveCart() {
   localStorage.setItem('foodops_cart', JSON.stringify(cart));
 }
 
+// تخفیف
+if (applyDiscountBtn) {
+  applyDiscountBtn.addEventListener('click', async () => {
+    const code = discountInput.value.trim();
+    if (!code) {
+      showToast('لطفاً کد تخفیف را وارد کنید', 'error');
+      return;
+    }
+    try {
+      const response = await fetchAPI('/orders/validate-discount', {
+        method: 'POST',
+        body: JSON.stringify({ code })
+      });
+      currentDiscount = {
+        code: response.data.code,
+        percent: response.data.discount_percent
+      };
+      showToast(`تخفیف ٪${currentDiscount.percent} با موفقیت اعمال شد`, 'success');
+      renderCart(); 
+    } catch (error) {
+      showToast(error.message || 'کد تخفیف نامعتبر است', 'error');
+      currentDiscount = null;
+      renderCart();
+    }
+  });
+}
+
 function renderCart() {
   const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   cartCountBadge.textContent = new Intl.NumberFormat('fa-IR').format(totalCount);
@@ -331,6 +354,9 @@ function renderCart() {
         `;
     cartSubtotalEl.textContent = '۰ تومان';
     cartTotalEl.textContent = '۰ تومان';
+    if (discountRow) discountRow.classList.add('hidden');
+    currentDiscount = null; 
+    if (discountInput) discountInput.value = '';
     return;
   }
 
@@ -339,17 +365,17 @@ function renderCart() {
   cartItemsContainer.innerHTML = cart.map(item => {
     const itemTotal = item.price * item.quantity;
     subtotal += itemTotal;
+    const finalImageUrl = getImageUrl(item.image_url);
 
     return `
             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl border border-gray-100">
                 <div class="flex items-center gap-3">
-                    <img src="${item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100&q=80'}" class="w-12 h-12 rounded-xl object-cover" />
+                    <img src="${finalImageUrl}" class="w-12 h-12 rounded-xl object-cover" />
                     <div>
                         <h4 class="font-bold text-slate-800 text-sm">${item.name}</h4>
                         <span class="text-xs text-gray-500">${formatPrice(item.price)}</span>
                     </div>
                 </div>
-
                 <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-xl border">
                     <button data-id="${item.id}" data-action="decrease" class="cart-qty-btn text-gray-500 hover:text-rose-500 font-bold w-6 h-6 flex items-center justify-center">-</button>
                     <span class="text-xs font-bold w-4 text-center">${new Intl.NumberFormat('fa-IR').format(item.quantity)}</span>
@@ -360,7 +386,21 @@ function renderCart() {
   }).join('');
 
   cartSubtotalEl.textContent = formatPrice(subtotal);
-  cartTotalEl.textContent = formatPrice(subtotal);
+  
+  let finalPrice = subtotal;
+  
+  if (currentDiscount) {
+    const discountAmount = (subtotal * currentDiscount.percent) / 100;
+    finalPrice = subtotal - discountAmount;
+    if (discountRow) {
+        discountRow.classList.remove('hidden');
+        cartDiscountEl.textContent = formatPrice(discountAmount);
+    }
+  } else {
+    if (discountRow) discountRow.classList.add('hidden');
+  }
+
+  cartTotalEl.textContent = formatPrice(finalPrice);
 
   document.querySelectorAll('.cart-qty-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -375,12 +415,9 @@ checkoutBtn.addEventListener('click', async () => {
   const token = localStorage.getItem('token');
   if (!token) {
     showToast('لطفاً ابتدا وارد حساب کاربری خود شوید', 'error');
-    setTimeout(() => {
-      window.location.href = '/src/pages/auth/login.html';
-    }, 1500);
+    setTimeout(() => window.location.href = '/src/pages/auth/login.html', 1500);
     return;
   }
-
   if (cart.length === 0) {
     showToast('سبد خرید شما خالی است', 'error');
     return;
@@ -390,29 +427,28 @@ checkoutBtn.addEventListener('click', async () => {
     items: cart.map(item => ({
       menu_item_id: item.id,
       quantity: item.quantity
-    }))
+    })),
+    discount_code: currentDiscount ? currentDiscount.code : null 
   };
 
   try {
     checkoutBtn.disabled = true;
     checkoutBtn.textContent = 'در حال ثبت...';
-
-    const response = await fetchAPI('/orders', {
+    await fetchAPI('/orders', {
       method: 'POST',
       body: JSON.stringify(orderPayload)
     });
-
     showToast('سفارش شما با موفقیت ثبت شد 🎉');
 
     cart = [];
+    currentDiscount = null;
+    if (discountInput) discountInput.value = '';
+    
     saveCart();
     renderCart();
     toggleCartDrawer(false);
 
-    setTimeout(() => {
-      window.location.href = '/src/pages/customer/my-orders.html';
-    }, 1500);
-
+    setTimeout(() => window.location.href = '/src/pages/customer/my-orders.html', 1500);
   } catch (error) {
     showToast(error.message || 'خطا در ثبت سفارش', 'error');
   } finally {
@@ -436,9 +472,7 @@ function toggleCartDrawer(open) {
     cartPanel.classList.remove('translate-x-0');
     cartPanel.classList.add('-translate-x-full');
     cartDrawer.classList.add('opacity-0');
-    setTimeout(() => {
-      cartDrawer.classList.add('pointer-events-none');
-    }, 300);
+    setTimeout(() => cartDrawer.classList.add('pointer-events-none'), 300);
   }
 }
 
