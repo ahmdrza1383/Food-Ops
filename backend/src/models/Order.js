@@ -17,7 +17,7 @@ const OrderSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: ['registered', 'preparing', 'ready_for_delivery', 'delivered', 'canceled'],
-        default: 'registered' // باگ املایی (حرف بزرگ) اصلاح شد
+        default: 'registered' 
     },
     estimated_ready_time: { type: Date }
 }, { timestamps: true });

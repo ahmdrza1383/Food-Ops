@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>صف سفارشات آشپزخانه | FoodOps</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link
       rel="stylesheet"
@@ -19,7 +18,6 @@
     </style>
   </head>
   <body class="bg-slate-50 min-h-screen text-slate-800">
-    <!-- هدر صفحه (اصلاح شده و هماهنگ با پنل مشتری) -->
     <header class="bg-white shadow-sm sticky top-0 z-30">
       <div
         class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center"
@@ -33,7 +31,6 @@
           >
         </div>
         <div class="flex items-center gap-4">
-          <!-- باکس نام کاربر با استایل نارنجی مشابه پنل مشتری -->
           <span
             id="user-name"
             class="text-xs bg-orange-100 text-amber-600 px-3 py-1.5 rounded-xl font-bold"
@@ -59,7 +56,6 @@
         </p>
       </div>
 
-      <!-- فیلترها (تب‌ها با مقدار data-filter مطابق وضعیت‌های دیتابیس) -->
       <div
         class="flex flex-wrap gap-2 mb-8 bg-white p-3 rounded-2xl shadow-sm border border-slate-100"
         id="filter-tabs"
@@ -84,15 +80,12 @@
         </button>
       </div>
 
-      <!-- باکس پیام یا لودینگ -->
       <div
         id="message-container"
         class="hidden text-center py-12 text-sm text-slate-500"
       ></div>
 
-      <!-- لیست کارت‌های سفارش -->
       <div id="orders-container" class="space-y-6">
-        <!-- کارت‌ها به صورت دینامیک اینجا بارگذاری می‌شوند -->
       </div>
     </main>
 

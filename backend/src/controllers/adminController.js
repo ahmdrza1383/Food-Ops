@@ -18,27 +18,23 @@ exports.getAllOrders = async (req, res) => {
     try {
         const { status, page = 1, limit = DEFAULT_LIMIT, sort = '-createdAt' } = req.query;
 
-        // اعتبارسنجی limit
         let parsedLimit = parseInt(limit);
         if (isNaN(parsedLimit) || parsedLimit < 1) {
             parsedLimit = DEFAULT_LIMIT;
         }
         parsedLimit = Math.min(parsedLimit, MAX_LIMIT);
 
-        // اعتبارسنجی page
         let parsedPage = parseInt(page);
         if (isNaN(parsedPage) || parsedPage < 1) {
             parsedPage = 1;
         }
 
-        // ساختن query بر اساس فیلترها
         const query = {};
 
         if (status && ['registered', 'preparing', 'ready_for_delivery', 'delivered', 'canceled'].includes(status)) {
             query.status = status;
         }
 
-        // اعتبارسنجی پارامتر sort
         let sortOption = {};
         const sortField = sort.replace(/^-/, '');
         const sortOrder = sort.startsWith('-') ? -1 : 1;
@@ -49,10 +45,8 @@ exports.getAllOrders = async (req, res) => {
             sortOption = { createdAt: -1 };
         }
 
-        // محاسبه pagination
         const skip = (parsedPage - 1) * parsedLimit;
 
-        // دریافت سفارش‌ها با paginate و populate کامل
         const orders = await Order.find(query)
             .populate('customer_id', 'fullname phone_number role_id')
             .populate('items.menu_item_id', 'name price image_url status')
@@ -61,7 +55,6 @@ exports.getAllOrders = async (req, res) => {
             .skip(skip)
             .limit(parsedLimit);
 
-        // شمارش کل سفارش‌ها برای pagination
         const total = await Order.countDocuments(query);
 
         res.status(200).json({
@@ -100,7 +93,6 @@ exports.getDailyReport = async (req, res) => {
         if (isNaN(numDays) || numDays < 1) numDays = 7;
         numDays = Math.min(numDays, 90);
 
-        // محاسبه تاریخ‌های شروع و پایان با استفاده از UTC
         const now = new Date();
         const startDate = new Date(now);
         startDate.setDate(startDate.getDate() - numDays);
@@ -109,7 +101,6 @@ exports.getDailyReport = async (req, res) => {
         const endDate = new Date(now);
         endDate.setUTCHours(23, 59, 59, 999);
 
-        // ۱. محاسبه مجموع کل درآمد و سفارشات (مستقیماً از دیتابیس)
         const summaryAggregation = await Order.aggregate([
             {
                 $match: {
@@ -129,7 +120,6 @@ exports.getDailyReport = async (req, res) => {
         const totalRevenue = summaryAggregation[0]?.total_revenue || 0;
         const totalOrders = summaryAggregation[0]?.total_orders || 0;
 
-        // ۲. آمار روزانه برای نمودار (با فرمت تاریخ UTC یکسان با دیتابیس)
         const dailyStats = await Order.aggregate([
             {
                 $match: {
@@ -147,12 +137,10 @@ exports.getDailyReport = async (req, res) => {
             { $sort: { _id: -1 } }
         ]);
 
-        // ۳. ایجاد نقشه روزهای خالی برای نمایش کامل نمودار
         const dailyDataMap = {};
         for (let i = 0; i < numDays; i++) {
             const date = new Date(now);
             date.setDate(date.getDate() - i);
-            // استفاده از ISO String برای هماهنگی با فرمت MongoDB
             const dateKey = date.toISOString().split('T')[0];
             dailyDataMap[dateKey] = {
                 date: dateKey,
@@ -170,11 +158,9 @@ exports.getDailyReport = async (req, res) => {
 
         const reportData = Object.values(dailyDataMap).sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        // ۴. محاسبه آمار تکمیلی
         const avgDailyRevenue = numDays > 0 ? (totalRevenue / numDays) : 0;
         const avgOrderValue = totalOrders > 0 ? (totalRevenue / totalOrders) : 0;
 
-        // ۵. یافتن بهترین روز فروش
         const bestDay = dailyStats.length > 0 ? dailyStats.reduce((max, day) =>
             day.total_sales > max.total_sales ? day : max
         ) : null;
@@ -191,7 +177,7 @@ exports.getDailyReport = async (req, res) => {
                 },
                 summary: {
                     total_revenue: Math.round(totalRevenue * 100) / 100,
-                    total_orders: totalOrders, // ✅ دیگر با ریدیس محاسبه نمی‌شود و دقیق است
+                    total_orders: totalOrders, 
                     average_daily_revenue: Math.round(avgDailyRevenue * 100) / 100,
                     average_order_value: Math.round(avgOrderValue * 100) / 100,
                     best_day: bestDay ? {
@@ -233,7 +219,6 @@ exports.getItemsReport = async (req, res) => {
         }
         numDays = Math.min(numDays, 90);
 
-        // محاسبه تاریخ شروع
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - numDays);
         startDate.setHours(0, 0, 0, 0);
@@ -241,7 +226,6 @@ exports.getItemsReport = async (req, res) => {
         const endDate = new Date();
         endDate.setHours(23, 59, 59, 999);
 
-        // استفاده از aggregation برای گزارش دقیق‌تر و سریع‌تر
         const itemStats = await Order.aggregate([
             {
                 $match: {
@@ -310,11 +294,9 @@ exports.getItemsReport = async (req, res) => {
             }
         ]);
 
-        // محاسبه مجموع کل
         const totalItemsSold = itemStats.reduce((sum, item) => sum + item.total_quantity_sold, 0);
         const totalRevenue = itemStats.reduce((sum, item) => sum + item.total_revenue, 0);
 
-        // پیدا کردن بهترین آیتم
         const topItem = itemStats.length > 0 ? itemStats[0] : null;
 
         res.status(200).json({
@@ -358,7 +340,6 @@ exports.updateUserRole = async (req, res) => {
         const { id } = req.params;
         const { role_id } = req.body;
 
-        // بررسی اعتبار ObjectId
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 status: 'fail',
@@ -366,7 +347,6 @@ exports.updateUserRole = async (req, res) => {
             });
         }
 
-        // بررسی ارسال role_id
         if (!role_id || !mongoose.Types.ObjectId.isValid(role_id)) {
             return res.status(400).json({
                 status: 'fail',
@@ -374,7 +354,6 @@ exports.updateUserRole = async (req, res) => {
             });
         }
 
-        // بررسی وجود نقش
         const role = await Role.findById(role_id);
         if (!role) {
             return res.status(404).json({
@@ -383,7 +362,6 @@ exports.updateUserRole = async (req, res) => {
             });
         }
 
-        // پیدا کردن کاربر
         const user = await User.findById(id);
         if (!user) {
             return res.status(404).json({
@@ -392,10 +370,8 @@ exports.updateUserRole = async (req, res) => {
             });
         }
 
-        // جلوگیری از تغییر نقش ادمین به غیر ادمین (امنیتی)
         const currentRole = await Role.findById(user.role_id);
         if (currentRole?.name?.toLowerCase() === 'admin' && role.name.toLowerCase() !== 'admin') {
-            // بررسی اینکه آیا ادمین دیگری وجود دارد یا نه
             const otherAdmins = await User.find({
                 role_id: { $in: (await Role.find({ name: 'admin' })).map(r => r._id) },
                 _id: { $ne: id }
@@ -409,11 +385,9 @@ exports.updateUserRole = async (req, res) => {
             }
         }
 
-        // ذخیره نقش قبلی برای لاگ
         const oldRoleId = user.role_id;
         const oldRole = await Role.findById(oldRoleId);
 
-        // تغییر نقش کاربر
         user.role_id = role_id;
         await user.save();
 
@@ -564,18 +538,14 @@ exports.updateSystemSettings = async (req, res) => {
     }
 };
 
-// @route   GET /api/admin/settings/working-hours
-// @desc    دریافت تنظیمات ساعت کاری و وضعیت پذیرش سفارش
-// @access  Private (Admin only)
+
 // @route   GET /api/admin/settings/working-hours
 // @desc    دریافت تنظیمات ساعت کاری و وضعیت پذیرش سفارش
 // @access  Private (Admin only)
 exports.getSystemSettings = async (req, res) => {
     try {
-        // نام مدل باید دقیقاً SystemSetting باشد (بدون s آخر)
         let settings = await SystemSetting.findOne(); 
         
-        // اگر تنظیماتی وجود نداشت، آبجکت خالی یا مقادیر خالی برمی‌گردانیم
         if (!settings) {
             settings = {
                 opening_time: '',
@@ -584,7 +554,6 @@ exports.getSystemSettings = async (req, res) => {
             };
         }
 
-        // خروجی را دقیقاً مطابق با ساختار بقیه APIها می‌فرستیم
         res.status(200).json({
             status: 'success',
             data: settings

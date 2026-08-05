@@ -148,7 +148,6 @@ exports.updateMenuItem = async (req, res) => {
     if (req.file) {
       imageUrl = `/uploads/${req.file.filename}`;
     } else if (!imageUrl && menuItem.image_url) {
-      // اگر تصویر جدیدی ارسال نشده و قبلاً تصویری داشته، همان را نگه می‌داریم
       imageUrl = menuItem.image_url;
     }
 

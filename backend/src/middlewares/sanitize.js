@@ -2,7 +2,6 @@
 const sanitizeObject = (obj) => {
     if (obj instanceof Object) {
         for (const key in obj) {
-            // اگر نام کلید با $ شروع شود یا شامل . باشد، حذف می‌شود
             if (/^\$|\./.test(key)) {
                 delete obj[key];
             } else {

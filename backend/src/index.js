@@ -15,7 +15,6 @@ const adminRoutes = require('./routes/adminRoutes');
 
 
 
-// اجازه خواندن فایل‌های داخل پوشه public به صورت استاتیک
 
 const app = express();
 const PORT = process.env.PORT || 3000;

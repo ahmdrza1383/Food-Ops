@@ -23,7 +23,6 @@ const cartSubtotalEl = document.getElementById('cart-subtotal');
 const cartTotalEl = document.getElementById('cart-total');
 const checkoutBtn = document.getElementById('checkout-btn');
 
-// متغیرهای مربوط به کد تخفیف
 const applyDiscountBtn = document.getElementById('apply-discount-btn');
 const discountInput = document.getElementById('discount-input');
 const discountRow = document.getElementById('discount-row');
@@ -35,12 +34,11 @@ const foodModalBackdrop = document.getElementById('food-modal-backdrop');
 const foodModalContent = document.getElementById('food-modal-content');
 const foodModalPanel = document.getElementById('food-modal-panel');
 
-// --- تابع کمکی برای مدیریت عکس‌های دیتابیس در سمت مشتری ---
 function getImageUrl(url) {
-    const defaultImage = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
-    if (!url) return defaultImage; // اگر خالی بود عکس دیفالت بده
-    if (url.startsWith('http')) return url; // اگر آدرس کامل بود همونو بده
-    return `http://localhost:3000${url.startsWith('/') ? '' : '/'}${url}`; // در غیر اینصورت به سرور وصلش کن
+  const defaultImage = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
+  if (!url) return defaultImage;
+  if (url.startsWith('http')) return url;
+  return `http://localhost:3000${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
 async function init() {
@@ -134,7 +132,7 @@ function renderMenuItems() {
 
     const matchesCategory = !selectedCategoryId || (item.category_id && (item.category_id._id === selectedCategoryId || item.category_id === selectedCategoryId));
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     return isCategoryActive && matchesCategory && matchesSearch;
   });
 
@@ -172,9 +170,9 @@ function renderMenuItems() {
                         <button 
                             data-id="${item._id}"
                             class="add-to-cart-btn px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1 ${isOutOfStock
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-orange-50 text-primary hover:bg-primary hover:text-white'
-                            }"
+        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+        : 'bg-orange-50 text-primary hover:bg-primary hover:text-white'
+      }"
                             ${isOutOfStock ? 'disabled' : ''}
                         >
                             <span>+</span>
@@ -196,7 +194,7 @@ function renderMenuItems() {
 
   document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      e.stopPropagation(); 
+      e.stopPropagation();
       const itemId = e.currentTarget.dataset.id;
       addToCart(itemId);
     });
@@ -237,9 +235,9 @@ function openFoodModal(itemId) {
         <button 
           id="modal-add-to-cart-btn"
           class="w-full py-3 rounded-2xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-lg ${isOutOfStock
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-primary text-white hover:bg-primary-hover shadow-orange-500/20'
-          }"
+      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+      : 'bg-primary text-white hover:bg-primary-hover shadow-orange-500/20'
+    }"
           ${isOutOfStock ? 'disabled' : ''}
         >
           <span>+ افزودن به سبد خرید</span>
@@ -327,7 +325,6 @@ function saveCart() {
   localStorage.setItem('foodops_cart', JSON.stringify(cart));
 }
 
-// تخفیف
 if (applyDiscountBtn) {
   applyDiscountBtn.addEventListener('click', async () => {
     const code = discountInput.value.trim();
@@ -345,7 +342,7 @@ if (applyDiscountBtn) {
         percent: response.data.discount_percent
       };
       showToast(`تخفیف ٪${currentDiscount.percent} با موفقیت اعمال شد`, 'success');
-      renderCart(); 
+      renderCart();
     } catch (error) {
       showToast(error.message || 'کد تخفیف نامعتبر است', 'error');
       currentDiscount = null;
@@ -368,7 +365,7 @@ function renderCart() {
     cartSubtotalEl.textContent = '۰ تومان';
     cartTotalEl.textContent = '۰ تومان';
     if (discountRow) discountRow.classList.add('hidden');
-    currentDiscount = null; 
+    currentDiscount = null;
     if (discountInput) discountInput.value = '';
     return;
   }
@@ -399,15 +396,15 @@ function renderCart() {
   }).join('');
 
   cartSubtotalEl.textContent = formatPrice(subtotal);
-  
+
   let finalPrice = subtotal;
-  
+
   if (currentDiscount) {
     const discountAmount = (subtotal * currentDiscount.percent) / 100;
     finalPrice = subtotal - discountAmount;
     if (discountRow) {
-        discountRow.classList.remove('hidden');
-        cartDiscountEl.textContent = formatPrice(discountAmount);
+      discountRow.classList.remove('hidden');
+      cartDiscountEl.textContent = formatPrice(discountAmount);
     }
   } else {
     if (discountRow) discountRow.classList.add('hidden');
@@ -441,7 +438,7 @@ checkoutBtn.addEventListener('click', async () => {
       menu_item_id: item.id,
       quantity: item.quantity
     })),
-    discount_code: currentDiscount ? currentDiscount.code : null 
+    discount_code: currentDiscount ? currentDiscount.code : null
   };
 
   try {
@@ -456,7 +453,7 @@ checkoutBtn.addEventListener('click', async () => {
     cart = [];
     currentDiscount = null;
     if (discountInput) discountInput.value = '';
-    
+
     saveCart();
     renderCart();
     toggleCartDrawer(false);

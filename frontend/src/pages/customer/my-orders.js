@@ -1,13 +1,18 @@
 import { fetchAPI } from '../../services/api.js';
 
-// عناصر DOM
 const loadingState = document.getElementById('loading-state');
 const emptyState = document.getElementById('empty-state');
 const errorBox = document.getElementById('error-box');
 const ordersContainer = document.getElementById('orders-container');
 const actionMessage = document.getElementById('action-message');
 
-// تغییر رنگ "آماده تحویل" به بنفش متمایز (Purple) و حفظ رنگ‌های دیگر
+const filterSection = document.getElementById('filter-section');
+const statusFilter = document.getElementById('status-filter');
+const dateFilter = document.getElementById('date-filter');
+const clearFiltersBtn = document.getElementById('clear-filters-btn');
+
+let allOrders = [];
+
 const STATUS_CONFIG = {
   registered: {
     title: 'ثبت‌ شده',
@@ -36,9 +41,6 @@ const STATUS_CONFIG = {
   }
 };
 
-/**
- * بررسی دسترسی و توکن کاربر
- */
 function checkAuth() {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -48,9 +50,6 @@ function checkAuth() {
   return token;
 }
 
-/**
- * نمایش پیام عملیات (لغو سفارش)
- */
 function showActionMessage(text, type = 'success') {
   actionMessage.textContent = text;
   actionMessage.className = `mb-6 p-4 rounded-xl text-sm font-medium text-center transition ${
@@ -65,9 +64,6 @@ function showActionMessage(text, type = 'success') {
   }, 4000);
 }
 
-/**
- * فرمت کردن تاریخ میلادی به تاریخ و ساعت خوانای فارسی
- */
 function formatPersianDate(dateString) {
   if (!dateString) return '---';
   const options = {
@@ -80,23 +76,33 @@ function formatPersianDate(dateString) {
   return new Date(dateString).toLocaleDateString('fa-IR', options);
 }
 
-/**
- * فرمت کردن قیمت به تومان
- */
+function toEnglishDigits(str = '') {
+  return str.replace(/[۰-۹٠-٩]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d) % 10);
+}
+
+function getJalaliDateOnly(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const parts = new Intl.DateTimeFormat('fa-IR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+
+  const year = parts.find(p => p.type === 'year')?.value;
+  const month = parts.find(p => p.type === 'month')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
+
+  return toEnglishDigits(`${year}/${month}/${day}`);
+}
+
 function formatPrice(price = 0) {
   return Number(price || 0).toLocaleString('fa-IR') + ' تومان';
 }
 
-/**
- * محاسبه زمان تقریبی آماده‌سازی: Max(prep_time) + 5
- * برای وضعیت‌های delivered و canceled نمایش داده نمی‌شود.
- */
 function getEstimatedPrepTime(order) {
   const status = order.status;
-
-  if (status === 'delivered' || status === 'canceled') {
-    return null;
-  }
+  if (status === 'delivered' || status === 'canceled') return null;
 
   const items = order.items || [];
   if (!items.length) return null;
@@ -105,14 +111,11 @@ function getEstimatedPrepTime(order) {
     ...items.map(item => item.menu_item_id?.prep_time || 15)
   );
 
-  const totalEstimatedTime = maxPrepTime + 5;
-  return `${totalEstimatedTime} دقیقه`;
+  return `${maxPrepTime + 5} دقیقه`;
 }
 
 
-/**
- * ساخت HTML یک کارت سفارش
- */
+
 function createOrderCard(order) {
   const statusInfo =
     STATUS_CONFIG[order.status] || {
@@ -160,8 +163,6 @@ function createOrderCard(order) {
 
   return `
     <div class="rounded-2xl border p-6 shadow-sm hover:shadow-md transition ${statusInfo.cardBg}">
-      
-      <!-- هدر کارت سفارش -->
       <div class="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-200/80">
         <div class="flex items-center gap-2">
           <!-- 👈 اضافه شدن بج شماره سفارش -->
@@ -172,26 +173,21 @@ function createOrderCard(order) {
             ${statusInfo.title}
           </span>
         </div>
-
         ${
           prepTimeText
-            ? `
-        <div class="text-xs md:text-sm">
-          <span class="text-slate-400 ml-1">زمان تقریبی آماده‌سازی:</span>
-          <span class="font-bold text-amber-600">${prepTimeText}</span>
-        </div>
-        `
+            ? `<div class="text-xs md:text-sm">
+                <span class="text-slate-400 ml-1">زمان تقریبی آماده‌سازی:</span>
+                <span class="font-bold text-amber-600">${prepTimeText}</span>
+               </div>`
             : ''
         }
       </div>
 
-      <!-- تاریخ ثبت سفارش -->
       <div class="bg-white/70 border border-slate-200/60 p-3 rounded-xl mb-4 text-xs text-slate-600 font-medium">
         <span class="text-slate-400 ml-1">تاریخ و زمان ثبت:</span>
         <span>${formatPersianDate(order.createdAt)}</span>
       </div>
 
-      <!-- ریزسفارش‌ها -->
       <div class="mb-4">
         <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">ریز سفارش‌ها</h4>
         <div class="bg-white/80 rounded-xl p-3 border border-slate-200/60">
@@ -207,14 +203,50 @@ function createOrderCard(order) {
         </div>
         ${cancelButtonHTML}
       </div>
-
     </div>
   `;
 }
 
-/**
- * ارسال درخواست لغو سفارش با متد PATCH
- */
+function renderOrders(ordersToRender) {
+  if (ordersToRender.length === 0) {
+    ordersContainer.innerHTML = `
+      <div class="text-center py-12 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <div class="text-3xl mb-2">🔍</div>
+        <p class="text-sm font-bold text-slate-700">هیچ سفارشی با این مشخصات یافت نشد.</p>
+        <p class="text-xs text-slate-400 mt-1">لطفاً فیلترهای انتخاب‌شده را تغییر دهید.</p>
+      </div>
+    `;
+    return;
+  }
+  ordersContainer.innerHTML = ordersToRender.map(order => createOrderCard(order)).join('');
+}
+
+function applyFilters() {
+  const selectedStatus = statusFilter.value;
+  const selectedJalaliDate = toEnglishDigits(dateFilter.value.trim());
+
+  let filtered = [...allOrders];
+
+  if (selectedStatus !== 'all') {
+    filtered = filtered.filter(order => order.status === selectedStatus);
+  }
+
+  if (selectedJalaliDate) {
+    filtered = filtered.filter(order => {
+      const orderDate = getJalaliDateOnly(order.createdAt);
+      return orderDate === selectedJalaliDate;
+    });
+  }
+
+  renderOrders(filtered);
+}
+
+function clearFilters() {
+  statusFilter.value = 'all';
+  dateFilter.value = ''; 
+  renderOrders(allOrders);
+}
+
 async function handleCancelOrder(orderId, buttonElement) {
   const token = checkAuth();
   if (!token) return;
@@ -242,9 +274,6 @@ async function handleCancelOrder(orderId, buttonElement) {
   }
 }
 
-/**
- * دریافت لیست سفارش‌ها از سرور
- */
 async function loadOrders() {
   const token = checkAuth();
   if (!token) return;
@@ -253,6 +282,7 @@ async function loadOrders() {
     loadingState.classList.remove('hidden');
     emptyState.classList.add('hidden');
     errorBox.classList.add('hidden');
+    filterSection.classList.add('hidden');
 
     const response = await fetchAPI('/orders/me', {
       method: 'GET',
@@ -262,12 +292,7 @@ async function loadOrders() {
       }
     });
 
-    const rawOrders =
-      response?.orders ||
-      response?.data?.orders ||
-      response?.data ||
-      response;
-
+    const rawOrders = response?.orders || response?.data?.orders || response?.data || response;
     const orders = Array.isArray(rawOrders) ? rawOrders : [];
 
     loadingState.classList.add('hidden');
@@ -278,15 +303,33 @@ async function loadOrders() {
     }
 
     orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    ordersContainer.innerHTML = orders.map(order => createOrderCard(order)).join('');
+    allOrders = orders;
+    
+    filterSection.classList.remove('hidden');
+    applyFilters();
 
   } catch (error) {
     loadingState.classList.add('hidden');
+    filterSection.classList.add('hidden');
     errorBox.textContent = error?.message || 'خطایی در دریافت لیست سفارش‌ها رخ داد.';
     errorBox.classList.remove('hidden');
   }
 }
+
+function initJalaliDatepicker() {
+  if (typeof jalaliDatepicker !== 'undefined') {
+    jalaliDatepicker.startWatch({
+      time: false,
+      hideAfterChange: true, 
+    });
+  } else {
+    console.error('کتابخانه تقویم شمسی به درستی لود نشده است.');
+  }
+}
+
+statusFilter.addEventListener('change', applyFilters);
+dateFilter.addEventListener('jdp:change', applyFilters); 
+clearFiltersBtn.addEventListener('click', clearFilters);
 
 ordersContainer.addEventListener('click', (e) => {
   const cancelBtn = e.target.closest('.cancel-order-btn');
@@ -296,4 +339,7 @@ ordersContainer.addEventListener('click', (e) => {
   }
 });
 
-document.addEventListener('DOMContentLoaded', loadOrders);
+document.addEventListener('DOMContentLoaded', () => {
+  initJalaliDatepicker();
+  loadOrders();
+});

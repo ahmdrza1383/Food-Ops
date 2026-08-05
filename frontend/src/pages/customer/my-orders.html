@@ -1,20 +1,25 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fa" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>سفارش‌های من | FoodOps</title>
     <link rel="stylesheet" href="../../style.css" />
+    
+    <link rel="stylesheet" href="https://unpkg.com/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css">
+    <script type="text/javascript" src="https://unpkg.com/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
   </head>
   <body class="bg-slate-50 min-h-screen font-sans text-slate-800 p-4 md:p-8">
-
-    <!-- هدر صفحه -->
-    <header class="max-w-4xl mx-auto flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
+    <header
+      class="max-w-4xl mx-auto flex items-center justify-between mb-8 pb-4 border-b border-slate-200"
+    >
       <div>
         <a href="/" class="text-2xl font-black text-amber-600 inline-block">
           FoodOps 🍔
         </a>
-        <h1 class="text-xl font-bold text-slate-800 mt-1">تاریخچه و وضعیت سفارش‌های من</h1>
+        <h1 class="text-xl font-bold text-slate-800 mt-1">
+          تاریخچه و وضعیت سفارش‌های من
+        </h1>
       </div>
       <a
         href="/"
@@ -24,26 +29,96 @@
       </a>
     </header>
 
-    <!-- کانتینر اصلی محتوا -->
     <main class="max-w-4xl mx-auto">
-      
-      <!-- باکس نمایش پیام‌های تعاملی (موفقیت یا خطا در لغو سفارش) -->
-      <div id="action-message" class="hidden mb-6 p-4 rounded-xl text-sm font-medium text-center transition"></div>
+      <div
+        id="action-message"
+        class="hidden mb-6 p-4 rounded-xl text-sm font-medium text-center transition"
+      ></div>
 
-      <!-- وضعیت در حال بارگذاری -->
-      <div id="loading-state" class="flex flex-col items-center justify-center py-16 text-slate-500">
-        <svg class="animate-spin h-8 w-8 text-amber-600 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      <div
+        id="filter-section"
+        class="hidden mb-6 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4"
+      >
+        <div class="flex flex-wrap items-center gap-4">
+          <div class="flex flex-col gap-1.5 min-w-[160px]">
+            <label for="status-filter" class="text-xs font-bold text-slate-500">
+              وضعیت سفارش:
+            </label>
+            <select
+              id="status-filter"
+              class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+            >
+              <option value="all">همه وضعیت‌ها</option>
+              <option value="registered">ثبت‌ شده</option>
+              <option value="preparing">در حال آماده‌سازی</option>
+              <option value="ready_for_delivery">آماده تحویل</option>
+              <option value="delivered">تحویل شده</option>
+              <option value="canceled">لغو شده</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col gap-1.5 min-w-[160px]">
+            <label for="date-filter" class="text-xs font-bold text-slate-500">
+              تاریخ ثبت سفارش:
+            </label>
+            <input
+              type="text"
+              id="date-filter"
+              data-jdp
+              placeholder="انتخاب از تقویم..."
+              readonly
+              class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+            />
+          </div>
+        </div>
+
+        <button
+          id="clear-filters-btn"
+          type="button"
+          class="self-end md:self-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition shadow-sm"
+        >
+          پاک‌کردن فیلترها
+        </button>
+      </div>
+
+      <div
+        id="loading-state"
+        class="flex flex-col items-center justify-center py-16 text-slate-500"
+      >
+        <svg
+          class="animate-spin h-8 w-8 text-amber-600 mb-3"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          ></circle>
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
         </svg>
         <span>در حال دریافت اطلاعات سفارش‌ها...</span>
       </div>
 
-      <!-- وضعیت لیست خالی -->
-      <div id="empty-state" class="hidden text-center py-16 bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+      <div
+        id="empty-state"
+        class="hidden text-center py-16 bg-white rounded-2xl border border-slate-200 p-8 shadow-sm"
+      >
         <div class="text-4xl mb-3">🍽️</div>
-        <h2 class="text-lg font-bold text-slate-700 mb-1">هنوز سفارشی ثبت نکرده‌اید!</h2>
-        <p class="text-sm text-slate-500 mb-6">به صفحه اصلی برگردید و اولین سفارش خوشمزه خود را ثبت کنید.</p>
+        <h2 class="text-lg font-bold text-slate-700 mb-1">
+          هنوز سفارشی ثبت نکرده‌اید!
+        </h2>
+        <p class="text-sm text-slate-500 mb-6">
+          به صفحه اصلی برگردید و اولین سفارش خوشمزه خود را ثبت کنید.
+        </p>
         <a
           href="/"
           class="inline-block px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-xl shadow-md shadow-amber-600/20 transition"
@@ -52,12 +127,12 @@
         </a>
       </div>
 
-      <!-- پیام خطای کلی -->
-      <div id="error-box" class="hidden mb-6 p-4 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-sm font-medium text-center"></div>
+      <div
+        id="error-box"
+        class="hidden mb-6 p-4 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-sm font-medium text-center"
+      ></div>
 
-      <!-- لیست سفارش‌ها -->
       <div id="orders-container" class="space-y-6"></div>
-
     </main>
 
     <script type="module" src="./my-orders.js"></script>

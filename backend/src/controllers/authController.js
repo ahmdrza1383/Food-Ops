@@ -83,7 +83,6 @@ exports.login = async (req, res) => {
             });
         }
 
-        // تولید توکن ورود
         const token = signToken(user._id);
 
         res.status(200).json({
@@ -113,7 +112,6 @@ exports.login = async (req, res) => {
 // @access  Private
 exports.getMe = async (req, res) => {
     try {
-        // req.user در فایل authMiddleware (میدل‌ور protect) پر شده است
         const user = req.user;
 
         res.status(200).json({

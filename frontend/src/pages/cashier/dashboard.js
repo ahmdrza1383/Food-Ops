@@ -1,15 +1,15 @@
 // frontend/src/pages/delivery/dashboard.js
 import { fetchAPI } from '../../services/api.js';
-import { formatPrice } from '../../utils/helpers.js'; 
+import { formatPrice } from '../../utils/helpers.js';
 
 const ordersContainer = document.getElementById('orders-container');
 const messageContainer = document.getElementById('message-container');
 const logoutBtn = document.getElementById('logout-btn');
 const userNameSpan = document.getElementById('user-name');
-const searchInput = document.getElementById('search-orders'); 
+const searchInput = document.getElementById('search-orders');
 
 let cashierOrders = [];
-let searchQuery = ''; 
+let searchQuery = '';
 
 const token = localStorage.getItem('token');
 const userStr = localStorage.getItem('user');
@@ -19,7 +19,7 @@ if (!token) {
   try {
     const user = JSON.parse(userStr);
     userNameSpan.textContent = user.fullname || 'صندوق‌دار';
-  } catch (e) {}
+  } catch (e) { }
 }
 
 logoutBtn.addEventListener('click', () => {
@@ -28,9 +28,6 @@ logoutBtn.addEventListener('click', () => {
   window.location.href = '/src/pages/auth/login.html';
 });
 
-/**
- * دریافت لیست سفارش‌های آماده تحویل از سرور
- */
 async function loadCashierOrders() {
   messageContainer.textContent = 'در حال بارگذاری سفارشات...';
   messageContainer.classList.remove('hidden');
@@ -38,14 +35,13 @@ async function loadCashierOrders() {
 
   try {
     const response = await fetchAPI('/delivery/orders');
-    
+
     if (response && response.status === 'success') {
       cashierOrders = response.data?.orders || [];
-      
-      // مرتب‌سازی بر اساس زمان: قدیمی‌ترین بالا (FIFO)
+
       cashierOrders.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
-      renderOrders(); // با رندر کردن دوباره، جستجو هم اعمال می‌شود
+      renderOrders();
     } else {
       messageContainer.textContent = response.message || 'خطا در دریافت سفارشات.';
     }
@@ -54,39 +50,27 @@ async function loadCashierOrders() {
   }
 }
 
-/**
- * 👇 اضافه شدن رویداد جستجو
- */
 searchInput.addEventListener('input', (e) => {
   searchQuery = e.target.value.trim().toLowerCase();
-  renderOrders(); // با هر بار تایپ کاربر، لیست فیلتر و دوباره رندر می‌شود
+  renderOrders();
 });
 
-/**
- * رندر کارت‌های سفارش صندوق‌داری با اعمال فیلتر جستجو
- */
-/**
- * رندر کارت‌های سفارش صندوق‌داری با اعمال فیلتر جستجو
- */
 function renderOrders() {
-  // اعمال فیلتر روی لیست اصلی
   let filteredOrders = cashierOrders;
 
   if (searchQuery) {
     filteredOrders = cashierOrders.filter(order => {
       const phone = order.customer_id?.phone_number?.toLowerCase() || '';
       const id = order._id?.toLowerCase() || '';
-      // 👈 اضافه کردن شماره سفارش روزانه به فیلتر جستجو
       const dailyNum = order.daily_order_number ? String(order.daily_order_number) : '';
-      
+
       return id.includes(searchQuery) || phone.includes(searchQuery) || dailyNum.includes(searchQuery);
     });
   }
 
-  // بررسی اینکه آیا لیست فیلتر شده خالی است یا خیر
   if (filteredOrders.length === 0) {
-    messageContainer.textContent = searchQuery 
-      ? 'هیچ سفارشی با این مشخصات یافت نشد.' 
+    messageContainer.textContent = searchQuery
+      ? 'هیچ سفارشی با این مشخصات یافت نشد.'
       : 'هیچ سفارشی جهت تحویل وجود ندارد.';
     messageContainer.classList.remove('hidden');
     ordersContainer.innerHTML = '';
@@ -104,7 +88,7 @@ function renderOrders() {
 
 function createOrderCard(order) {
   const card = document.createElement('div');
-  
+
   const cardBg = 'bg-purple-50/40 border-purple-200';
   card.className = `rounded-2xl border p-6 shadow-sm hover:shadow-md transition ${cardBg}`;
 
@@ -121,7 +105,7 @@ function createOrderCard(order) {
     minute: '2-digit'
   }) : 'نامشخص';
   const orderId = order._id;
-  
+
   // 👈 دریافت شماره سفارش روزانه با مقدار جایگزین
   const orderNumber = order.daily_order_number || '---';
 
@@ -138,7 +122,7 @@ function createOrderCard(order) {
     const quantity = item.quantity || 1;
     const unitPrice = item.unit_price || 0;
     const totalPrice = unitPrice * quantity;
-    
+
     itemsHtml += `
       <div class="flex justify-between items-center py-2 border-b border-slate-200/60 last:border-0 text-sm">
         <div class="flex items-center gap-2">
@@ -191,7 +175,7 @@ function createOrderCard(order) {
   if (btn) {
     btn.addEventListener('click', async (e) => {
       const id = e.currentTarget.getAttribute('data-id');
-      
+
       btn.disabled = true;
       btn.textContent = 'در حال ثبت تحویل...';
 

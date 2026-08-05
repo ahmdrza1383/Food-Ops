@@ -8,7 +8,7 @@ exports.getReadyOrders = async (req, res) => {
         const orders = await Order.find({ status: 'ready_for_delivery' })
             .populate('customer_id', 'fullname phone_number')
             .populate('items.menu_item_id', 'name price')
-            .sort({ updatedAt: 1 }); // ترتیب براساس زمان آماده‌سازی (قدیمی‌ترها اول)
+            .sort({ updatedAt: 1 });
 
         res.status(200).json({
             status: 'success',

@@ -10,7 +10,6 @@ const userNameSpan = document.getElementById('user-name');
 let allOrders = [];
 let currentFilter = 'all';
 
-// تنظیمات رنگ‌ها و وضعیت‌ها دقیقاً مطابق صفحه سفارشات من
 const STATUS_CONFIG = {
   registered: {
     title: 'ثبت شده',
@@ -24,7 +23,6 @@ const STATUS_CONFIG = {
   }
 };
 
-// بررسی احراز هویت
 const token = localStorage.getItem('token');
 const userStr = localStorage.getItem('user');
 if (!token) {
@@ -42,9 +40,6 @@ logoutBtn.addEventListener('click', () => {
   window.location.href = '/src/pages/auth/login.html';
 });
 
-/**
- * دریافت لیست سفارشات از سرور
- */
 async function loadKitchenOrders() {
   messageContainer.textContent = 'در حال بارگذاری سفارشات...';
   messageContainer.classList.remove('hidden');
@@ -56,7 +51,6 @@ async function loadKitchenOrders() {
     if (response && response.status === 'success') {
       allOrders = response.data?.orders || [];
       
-      // مرتب‌سازی بر اساس زمان: قدیمی‌ترین بالا (صعودی / FIFO)
       allOrders.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
       renderOrders();
@@ -68,9 +62,6 @@ async function loadKitchenOrders() {
   }
 }
 
-/**
- * رندر کارت‌ها بر اساس فیلتر انتخاب شده
- */
 function renderOrders() {
   let filtered = allOrders;
 
@@ -228,7 +219,6 @@ function createOrderCard(order) {
   return card;
 }
 
-// مدیریت فیلتر تب‌ها
 filterButtons.forEach(button => {
   button.addEventListener('click', (e) => {
     filterButtons.forEach(btn => {

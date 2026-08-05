@@ -18,7 +18,6 @@ export async function fetchAPI(endpoint, options = {}) {
 
         const data = await response.json();
 
-        // مدیریت خطای ۴۰۱ (انقضای توکن یا عدم دسترسی)
         if (response.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');

@@ -6,9 +6,6 @@ const messageBox = document.getElementById('message-box');
 const phoneInput = document.getElementById('phone_number');
 const passwordInput = document.getElementById('password');
 
-/**
- * نمایش پیام در باکس اعلان
- */
 function showMessage(text, type = 'error') {
   messageBox.textContent = text;
   messageBox.className = `mb-6 p-4 rounded-3xl text-xs font-bold text-center transition block ${type === 'success'
@@ -18,9 +15,6 @@ function showMessage(text, type = 'error') {
   messageBox.classList.remove('hidden');
 }
 
-/**
- * پنهان کردن باکس پیام با شروع تایپ کاربر
- */
 function hideMessageOnInput() {
   if (!messageBox.classList.contains('hidden')) {
     messageBox.classList.add('hidden');
@@ -30,9 +24,6 @@ function hideMessageOnInput() {
 phoneInput.addEventListener('input', hideMessageOnInput);
 passwordInput.addEventListener('input', hideMessageOnInput);
 
-/**
- * مسیریابی کاربر بر اساس فیلد نام نقش (منطبق با ساختار جدید نقش‌ها)
- */
 function redirectByRole(roleName) {
   const normalizedRole = String(roleName || 'customer').toLowerCase().trim();
 
@@ -53,9 +44,6 @@ function redirectByRole(roleName) {
   }
 }
 
-/**
- * مدیریت رویداد ارسال فرم ورود
- */
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   messageBox.classList.add('hidden');
@@ -74,12 +62,10 @@ loginForm.addEventListener('submit', async (e) => {
     return false;
   }
 
-  // تغییر ظاهر دکمه
   submitBtn.disabled = true;
   submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
   submitBtn.innerHTML = '<span>در حال بررسی...</span>';
 
-  // ارسال درخواست API
   const response = await fetchAPI('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ phone_number, password })
@@ -87,26 +73,16 @@ loginForm.addEventListener('submit', async (e) => {
     return { success: false, message: 'خطا در ارتباط با سرور!' };
   });
 
-  // ----------------------------------------------------------------
-  // ۱. بررسی ارور منطقی از سمت بک‌اند (success: false)
-  // ----------------------------------------------------------------
   if (response && response.success === false) {
-
-    // بازگرداندن دکمه به حالت اولیه
     submitBtn.disabled = false;
     submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
     submitBtn.innerHTML = '<span>ورود به سیستم</span>';
 
-    // نمایش پیام خطا (که روی صفحه می‌مونه تا کاربر اصلاح کنه)
     showMessage(response.message || 'اطلاعات وارد شده اشتباه است.', 'error');
 
-    // انتخاب فیلد رمز عبور برای اصلاح سریع‌تر
     passwordInput.select();
 
   } else {
-    // ----------------------------------------------------------------
-    // ۲. در صورت موفقیت: استفاده از try/catch برای بقیه پردازش‌ها
-    // ----------------------------------------------------------------
     try {
       const token = response.token;
       if (!token) throw new Error('توکنی دریافت نشد!');
@@ -143,7 +119,6 @@ loginForm.addEventListener('submit', async (e) => {
       }, 1000);
 
     } catch (error) {
-      // Catch برای خطاهای پیش‌بینی‌نشده در بخش else
       submitBtn.disabled = false;
       submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
       submitBtn.innerHTML = '<span>ورود به سیستم</span>';

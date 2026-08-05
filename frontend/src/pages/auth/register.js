@@ -1,32 +1,22 @@
 import { fetchAPI } from '../../services/api.js';
 
-// دریافت عناصر DOM
 const registerForm = document.getElementById('register-form');
 const submitBtn = document.getElementById('submit-btn');
 const messageBox = document.getElementById('message-box');
 
-/**
- * نمایش پیام در صفحه
- */
 function showMessage(text, type = 'error') {
   messageBox.textContent = text;
   messageBox.className = `mb-4 p-3 rounded-3xl text-sm font-medium text-center ${type === 'success'
-      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-      : 'bg-rose-50 text-rose-700 border border-rose-200'
+    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+    : 'bg-rose-50 text-rose-700 border border-rose-200'
     }`;
   messageBox.classList.remove('hidden');
 }
 
-/**
- * پنهان کردن باکس پیام
- */
 function hideMessage() {
   messageBox.classList.add('hidden');
 }
 
-/**
- * تغییر وضعیت لودینگ دکمه
- */
 function setButtonLoading(isLoading) {
   if (isLoading) {
     submitBtn.disabled = true;
@@ -45,9 +35,6 @@ function setButtonLoading(isLoading) {
   }
 }
 
-/**
- * اعتبارسنجی فرم براساس فیلدها
- */
 function validateForm(fullname, phone_number, password) {
   if (!fullname.trim() || !phone_number.trim() || !password) {
     showMessage('لطفاً تمامی فیلدها را پر کنید.', 'error');
@@ -68,22 +55,18 @@ function validateForm(fullname, phone_number, password) {
   return true;
 }
 
-// گوش دادن به رویداد ارسال فرم
 registerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   hideMessage();
 
-  // گرفتن مقادیر فیلدها
   const fullname = document.getElementById('fullname').value;
   const phone_number = document.getElementById('phone_number').value;
   const password = document.getElementById('password').value;
 
-  // اعتبارسنجی فرانت‌اند
   if (!validateForm(fullname, phone_number, password)) {
     return;
   }
 
-  // آبجکت ارسالی به سرور
   const payload = {
     fullname: fullname.trim(),
     phone_number: phone_number.trim(),
@@ -93,20 +76,17 @@ registerForm.addEventListener('submit', async (e) => {
   try {
     setButtonLoading(true);
 
-    // ارسال درخواست ثبت‌نام به بک‌اند
     const response = await fetchAPI('/auth/register', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
 
-    // جستجوی توکن و اطلاعات کاربر در ساختارهای مختلف پاسخ سرور
     const token =
       response?.token || response?.data?.token || response?.accessToken;
     const user =
       response?.user || response?.data?.user || response?.data;
 
     if (token) {
-      // حالت اول: سرور توکن را همراه ثبت‌نام فرستاده است
       localStorage.setItem('token', token);
       if (user && typeof user === 'object') {
         localStorage.setItem('user', JSON.stringify(user));
@@ -117,7 +97,6 @@ registerForm.addEventListener('submit', async (e) => {
         window.location.href = '/';
       }, 1500);
     } else {
-      // حالت دوم: سرور توکن نداده و بعد از ثبت‌نام نیاز به لاگین است
       showMessage('حساب کاربری با موفقیت ایجاد شد! لطفاً وارد حساب خود شوید...', 'success');
       setTimeout(() => {
         window.location.href = '/src/pages/auth/login.html';

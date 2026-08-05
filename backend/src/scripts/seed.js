@@ -4,7 +4,6 @@ require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// فراخوانی مدل‌ها
 const Role = require('../models/Role');
 const User = require('../models/User');
 const Category = require('../models/Category');
@@ -68,27 +67,27 @@ async function seedFullDatabase() {
 
         const users = await User.insertMany([
             // ادمین
-            { fullname: 'مدیر سیستم', phone_number: '09121111111', password: hashedPassword, role_id: roleMap.Admin },
+            { fullname: 'مدیر سیستم', phone_number: '09121111111', password: hashedPassword, role_id: roleMap.admin },
             // آشپزخانه
-            { fullname: 'احمد رضایی', phone_number: '09122222222', password: hashedPassword, role_id: roleMap['Kitchen Staff'] },
-            { fullname: 'محمد کریمی', phone_number: '09123333333', password: hashedPassword, role_id: roleMap['Kitchen Staff'] },
-            { fullname: 'سعید محمدی', phone_number: '09124444444', password: hashedPassword, role_id: roleMap['Kitchen Staff'] },
+            { fullname: 'احمد رضایی', phone_number: '09122222222', password: hashedPassword, role_id: roleMap.kitchen },
+            { fullname: 'محمد کریمی', phone_number: '09123333333', password: hashedPassword, role_id: roleMap.kitchen },
+            { fullname: 'سعید محمدی', phone_number: '09124444444', password: hashedPassword, role_id: roleMap.kitchen },
             // صندوق‌دار / تحویل
-            { fullname: 'نرگس حسینی', phone_number: '09125555555', password: hashedPassword, role_id: roleMap.Cashier },
-            { fullname: 'پریسا احمدی', phone_number: '09126666666', password: hashedPassword, role_id: roleMap.Cashier },
+            { fullname: 'نرگس حسینی', phone_number: '09125555555', password: hashedPassword, role_id: roleMap.delivery },
+            { fullname: 'پریسا احمدی', phone_number: '09126666666', password: hashedPassword, role_id: roleMap.delivery },
             // مشتریان
-            { fullname: 'امیر حسین زاده', phone_number: '09127777777', password: hashedPassword, role_id: roleMap.Customer },
-            { fullname: 'زهرا موسوی', phone_number: '09128888888', password: hashedPassword, role_id: roleMap.Customer },
-            { fullname: 'رضا نصیری', phone_number: '09129999999', password: hashedPassword, role_id: roleMap.Customer },
-            { fullname: 'سارا جعفری', phone_number: '09121010101', password: hashedPassword, role_id: roleMap.Customer },
-            { fullname: 'مهدی قاسمی', phone_number: '09121121212', password: hashedPassword, role_id: roleMap.Customer },
-            { fullname: 'فاطمه رحیمی', phone_number: '09121232323', password: hashedPassword, role_id: roleMap.Customer },
-            { fullname: 'حسن عباسی', phone_number: '09121343434', password: hashedPassword, role_id: roleMap.Customer },
-            { fullname: 'مریم کاظمی', phone_number: '09121454545', password: hashedPassword, role_id: roleMap.Customer },
-            { fullname: 'علی شریفی', phone_number: '09121565656', password: hashedPassword, role_id: roleMap.Customer },
-            { fullname: 'نازنین نوری', phone_number: '09121676767', password: hashedPassword, role_id: roleMap.Customer },
-            { fullname: 'پویا جمالی', phone_number: '09121787878', password: hashedPassword, role_id: roleMap.Customer },
-            { fullname: 'گلناز حیدری', phone_number: '09121898989', password: hashedPassword, role_id: roleMap.Customer }
+            { fullname: 'امیر حسین زاده', phone_number: '09127777777', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'زهرا موسوی', phone_number: '09128888888', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'رضا نصیری', phone_number: '09129999999', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'سارا جعفری', phone_number: '09121010101', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'مهدی قاسمی', phone_number: '09121121212', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'فاطمه رحیمی', phone_number: '09121232323', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'حسن عباسی', phone_number: '09121343434', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'مریم کاظمی', phone_number: '09121454545', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'علی شریفی', phone_number: '09121565656', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'نازنین نوری', phone_number: '09121676767', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'پویا جمالی', phone_number: '09121787878', password: hashedPassword, role_id: roleMap.customer },
+            { fullname: 'گلناز حیدری', phone_number: '09121898989', password: hashedPassword, role_id: roleMap.customer }
         ]);
         const userMap = {};
         users.forEach(u => { userMap[u.fullname] = u._id; });
@@ -110,7 +109,6 @@ async function seedFullDatabase() {
 
         console.log('Creating Menu Items...');
         const menuItems = await MenuItem.insertMany([
-            // غذاهای ایرانی
             { category_id: catMap['غذاهای ایرانی'], name: 'کباب کوبیده', description: '۲ سیخ کباب کوبیده با برنج زعفرانی و گوجه', price: 320000, stock_quantity: 50, status: true, estimated_prep_time: 25 },
             { category_id: catMap['غذاهای ایرانی'], name: 'کباب برگ', description: '۲ سیخ کباب برگ با برنج و کباب', price: 450000, stock_quantity: 30, status: true, estimated_prep_time: 30 },
             { category_id: catMap['غذاهای ایرانی'], name: 'جوجه کباب', description: 'یک ربع جوجه کباب با زعفران و برنج', price: 280000, stock_quantity: 40, status: true, estimated_prep_time: 20 },
@@ -118,33 +116,28 @@ async function seedFullDatabase() {
             { category_id: catMap['غذاهای ایرانی'], name: 'فسنجان', description: 'خورش فسنجان با مرغ و گردو', price: 250000, stock_quantity: 25, status: true, estimated_prep_time: 25 },
             { category_id: catMap['غذاهای ایرانی'], name: 'ته چین مرغ', description: 'ته چین با برنج و مرغ و زعفران', price: 270000, stock_quantity: 20, status: true, estimated_prep_time: 35 },
 
-            // پیتزا و فست‌فود
             { category_id: catMap['پیتزا و فست‌فود'], name: 'پیتزا مخصوص', description: 'پیتزا با سس مخصوص و پنیر موزارلا', price: 290000, stock_quantity: 50, status: true, estimated_prep_time: 20 },
             { category_id: catMap['پیتزا و فست‌فود'], name: 'پیتزا پپرونی', description: 'پیتزا با سس گوجه و پپرونی', price: 260000, stock_quantity: 45, status: true, estimated_prep_time: 20 },
             { category_id: catMap['پیتزا و فست‌فود'], name: 'پیتزا مخلوط', description: 'پیتزا با گوشت و قارچ و فلفل دلمه‌ای', price: 310000, stock_quantity: 40, status: true, estimated_prep_time: 22 },
             { category_id: catMap['پیتزا و فست‌فود'], name: 'پیتزا مرغ', description: 'پیتزا با تکه‌های مرغ و سس سفید', price: 270000, stock_quantity: 30, status: true, estimated_prep_time: 20 },
             { category_id: catMap['پیتزا و فست‌فود'], name: 'پیتزا سبزیجات', description: 'پیتزا با فلفل دلمه‌ای و گوجه و قارچ', price: 230000, stock_quantity: 35, status: true, estimated_prep_time: 18 },
 
-            // برگر و ساندویچ
             { category_id: catMap['برگر و ساندویچ'], name: 'برگر مخصوص', description: 'برگر ۱۸۰ گرمی با پنیر و سس مخصوص', price: 240000, stock_quantity: 60, status: true, estimated_prep_time: 15 },
             { category_id: catMap['برگر و ساندویچ'], name: 'برگر مرغ', description: 'برگر مرغ با کاهو و سس سفید', price: 190000, stock_quantity: 50, status: true, estimated_prep_time: 15 },
             { category_id: catMap['برگر و ساندویچ'], name: 'ساندویچ کوبیده', description: 'ساندویچ کباب کوبیده با سبزیجات', price: 170000, stock_quantity: 40, status: true, estimated_prep_time: 12 },
             { category_id: catMap['برگر و ساندویچ'], name: 'ساندویچ ژامبون', description: 'ساندویچ ژامبون و پنیر گودا', price: 150000, stock_quantity: 45, status: true, estimated_prep_time: 10 },
 
-            // پیش‌غذا و مخلفات
             { category_id: catMap['پیش‌غذا و مخلفات'], name: 'سیب‌زمینی سرخ‌کرده', description: 'سیب‌زمینی سرخ‌کرده با سس', price: 90000, stock_quantity: 100, status: true, estimated_prep_time: 10 },
             { category_id: catMap['پیش‌غذا و مخلفات'], name: 'نان سیر', description: 'نان تست با سیر و کره', price: 80000, stock_quantity: 80, status: true, estimated_prep_time: 8 },
             { category_id: catMap['پیش‌غذا و مخلفات'], name: 'چیز استیک', description: 'چیز استیک با پنیر و سس مخصوص', price: 140000, stock_quantity: 40, status: true, estimated_prep_time: 12 },
             { category_id: catMap['پیش‌غذا و مخلفات'], name: 'سالاد سزار', description: 'سالاد سزار با مرغ و نان', price: 180000, stock_quantity: 30, status: true, estimated_prep_time: 10 },
 
-            // نوشیدنی‌ها
             { category_id: catMap['نوشیدنی‌ها'], name: 'نوشابه', description: 'نوشابه ۳۰۰ میلی‌لیتری', price: 25000, stock_quantity: 200, status: true, estimated_prep_time: 1 },
             { category_id: catMap['نوشیدنی‌ها'], name: 'دوغ', description: 'دوغ محلی گازدار', price: 30000, stock_quantity: 150, status: true, estimated_prep_time: 1 },
             { category_id: catMap['نوشیدنی‌ها'], name: 'آب معدنی', description: 'آب معدنی ۵۰۰ میلی‌لیتری', price: 15000, stock_quantity: 250, status: true, estimated_prep_time: 1 },
             { category_id: catMap['نوشیدنی‌ها'], name: 'چای', description: 'چای سیاه فرنگی', price: 20000, stock_quantity: 100, status: true, estimated_prep_time: 5 },
             { category_id: catMap['نوشیدنی‌ها'], name: 'قهوه', description: 'قهوه ترک یا اسپرسو', price: 45000, stock_quantity: 60, status: true, estimated_prep_time: 8 },
 
-            // دسرها
             { category_id: catMap['دسرها'], name: 'کیک شکلاتی', description: 'برش کیک شکلاتی با پودر قند', price: 110000, stock_quantity: 30, status: true, estimated_prep_time: 5 },
             { category_id: catMap['دسرها'], name: 'بستنی', description: 'بستنی وانیلی/شکلاتی', price: 50000, stock_quantity: 60, status: true, estimated_prep_time: 1 },
             { category_id: catMap['دسرها'], name: 'شیرینی زعفرانی', description: 'شیرینی زعفرانی با خلال پسته', price: 75000, stock_quantity: 25, status: true, estimated_prep_time: 3 }
