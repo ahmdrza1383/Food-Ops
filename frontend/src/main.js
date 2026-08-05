@@ -155,10 +155,10 @@ function renderMenuItems() {
     return `
             <div 
                 data-id="${item._id}"
-                class="food-card bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition flex flex-col overflow-hidden group cursor-pointer"
+                class="food-card bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition flex flex-col overflow-hidden group cursor-pointer ${isOutOfStock ? 'opacity-60 bg-gray-50' : ''}"
             >
                 <div class="relative h-44 overflow-hidden bg-gray-100">
-                    <img src="${finalImageUrl}" alt="${item.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                    <img src="${finalImageUrl}" alt="${item.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 ${isOutOfStock ? 'grayscale' : ''}" />
                     ${isOutOfStock ? `<span class="absolute top-3 right-3 bg-rose-500/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full">ناموجود</span>` : ''}
                 </div>
                 
@@ -304,9 +304,18 @@ function updateQuantity(itemId, delta) {
   const itemIndex = cart.findIndex(c => c.id === itemId);
   if (itemIndex === -1) return;
 
-  cart[itemIndex].quantity += delta;
+  const cartItem = cart[itemIndex];
 
-  if (cart[itemIndex].quantity <= 0) {
+  if (delta > 0) {
+    if (cartItem.quantity >= cartItem.maxStock) {
+      showToast('حداکثر موجودی این غذا انتخاب شده است', 'error');
+      return;
+    }
+  }
+
+  cartItem.quantity += delta;
+
+  if (cartItem.quantity <= 0) {
     cart.splice(itemIndex, 1);
   }
 
