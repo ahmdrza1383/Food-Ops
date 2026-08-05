@@ -109,6 +109,7 @@ function getEstimatedPrepTime(order) {
   return `${totalEstimatedTime} دقیقه`;
 }
 
+
 /**
  * ساخت HTML یک کارت سفارش
  */
@@ -121,6 +122,9 @@ function createOrderCard(order) {
     };
 
   const prepTimeText = getEstimatedPrepTime(order);
+  
+  // 👈 دریافت شماره سفارش روزانه با مقدار جایگزین
+  const orderNumber = order.daily_order_number || '---'; 
 
   const itemsHTML = (order.items || [])
     .map(item => {
@@ -160,6 +164,10 @@ function createOrderCard(order) {
       <!-- هدر کارت سفارش -->
       <div class="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-200/80">
         <div class="flex items-center gap-2">
+          <!-- 👈 اضافه شدن بج شماره سفارش -->
+          <span class="bg-white border border-slate-200 px-3 py-1.5 rounded-full text-xs font-black text-slate-700 shadow-sm">
+            #${orderNumber}
+          </span>
           <span class="px-3 py-1.5 rounded-full text-xs font-bold border ${statusInfo.classes}">
             ${statusInfo.title}
           </span>
@@ -191,7 +199,7 @@ function createOrderCard(order) {
         </div>
       </div>
 
-      <!-- فوتر کارت: جمع کل سفارش + دکمه لغو در وضعیت registered -->
+      <!-- فوتر کارت -->
       <div class="flex flex-wrap justify-between items-center gap-4 pt-3 border-t border-slate-200/80">
         <div>
           <span class="text-sm font-bold text-slate-800 ml-2">مبلغ کل سفارش:</span>

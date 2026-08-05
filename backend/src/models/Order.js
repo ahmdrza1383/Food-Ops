@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 
 const OrderSchema = new mongoose.Schema({
     customer_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    daily_order_number: {
+        type: Number
+        // required: true
+    },
     items: [{
         menu_item_id: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem', required: true },
         quantity: { type: Number, required: true, min: 1 },

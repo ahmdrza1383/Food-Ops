@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>نمایشگر کیوسک | FoodOps</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&display=swap");
+      body {
+        font-family: "Vazirmatn", sans-serif;
+        background-color: #0f172a; /* رنگ پس‌زمینه تیره */
+        color: white;
+        overflow: hidden; /* جلوگیری از اسکرول خوردن مانیتور کیوسک */
+      }
+    </style>
+  </head>
+  <body class="h-screen flex flex-col">
+    <!-- هدر صفحه -->
+    <header class="p-5 bg-slate-900 border-b border-slate-800 flex justify-between items-center shadow-lg">
+      <div class="flex items-center gap-3">
+        <span class="text-3xl">🍔</span>
+        <h1 class="text-3xl font-black text-amber-500 tracking-tight">FoodOps</h1>
+      </div>
+      <!-- ساعت دیجیتال -->
+      <div id="clock" class="text-3xl font-bold text-slate-300 tracking-widest"></div>
+    </header>
+    
+    <!-- محتوای اصلی (دو ستون) -->
+    <main class="flex-1 grid grid-cols-2 gap-0">
+      
+      <!-- ستون سمت راست: در حال آماده‌سازی -->
+      <div class="border-l border-slate-800 bg-slate-900/50 flex flex-col">
+        <div class="p-6 bg-blue-950/60 text-center border-b border-blue-900/50 shadow-md">
+          <h2 class="text-4xl font-black text-blue-400">در حال آماده‌سازی</h2>
+        </div>
+        <!-- کانتینر شماره‌های در حال آماده‌سازی -->
+        <div id="preparing-container" class="flex-1 p-8 grid grid-cols-3 md:grid-cols-4 gap-6 content-start overflow-hidden">
+          <!-- شماره‌ها با JS اضافه می‌شوند -->
+        </div>
+      </div>
+      
+      <!-- ستون سمت چپ: آماده تحویل -->
+      <div class="bg-slate-900/50 flex flex-col">
+        <div class="p-6 bg-emerald-950/60 text-center border-b border-emerald-900/50 shadow-md">
+          <h2 class="text-4xl font-black text-emerald-400">آماده تحویل</h2>
+        </div>
+        <!-- کانتینر شماره‌های آماده تحویل -->
+        <div id="ready-container" class="flex-1 p-8 grid grid-cols-3 md:grid-cols-4 gap-6 content-start overflow-hidden">
+          <!-- شماره‌ها با JS اضافه می‌شوند -->
+        </div>
+      </div>
+
+    </main>
+
+    <script type="module" src="./kiosk.js"></script>
+  </body>
+</html>

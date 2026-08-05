@@ -3,6 +3,7 @@ const MenuItem = require('../models/MenuItem');
 const Discount = require('../models/Discount');
 const OrderLog = require('../models/OrderLog');
 const Role = require('../models/Role');
+const DailyCounter = require('../models/DailyCounter');
 const mongoose = require('mongoose');
 
 // @desc    ثبت سفارش جدید توسط مشتری
@@ -85,23 +86,34 @@ exports.createOrder = async (req, res) => {
             finalPrice = totalPrice - discountAmount;
         }
 
-        // ۳. کسر موجودی از انبار
+        // ۳. تولید شماره سفارش روزانه (YYYY-MM-DD) به صورت اتمیک و امن
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0];
+
+        const counter = await DailyCounter.findOneAndUpdate(
+            { date: dateStr },
+            { $inc: { seq: 1 } },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        );
+
+        // ۴. کسر موجودی از انبار
         for (const item of itemsToUpdateStock) {
             item.menuItem.stock_quantity -= item.quantity;
             await item.menuItem.save();
         }
 
-        // ۴. ایجاد سفارش در دیتابیس
+        // ۵. ایجاد سفارش در دیتابیس همراه با شماره روزانه
         const newOrder = await Order.create({
             customer_id: req.user._id,
             items: orderItems,
             total_price: totalPrice,
             discount_code_id: discountCodeId,
             final_price: finalPrice,
-            status: 'registered'
+            status: 'registered',
+            daily_order_number: counter.seq // 👈 تخصیص شماره سفارش روزانه
         });
 
-        // ۵. ثبت لاگ ایجاد سفارش
+        // ۶. ثبت لاگ ایجاد سفارش
         await OrderLog.create({
             order_id: newOrder._id,
             old_status: null,
@@ -506,4 +518,45 @@ exports.validateDiscount = async (req, res) => {
             error: error.message
         });
     }
+};
+
+exports.getKioskOrders = async (req, res) => {
+  try {
+    // ۱. تنظیم زمان شروع و پایان امروز برای فیلتر کردن دیتابیس
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // ۲. دریافت سفارش‌های در حال آماده‌سازیِ امروز
+    // استفاده از createdAt تضمین می‌کند که فقط سفارش‌های ثبت‌شده در امروز دریافت شوند
+    const preparing_orders = await Order.find({
+      status: 'preparing',
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    }).select('daily_order_number status updatedAt'); 
+    // متد select باعث می‌شود دیتای اضافی از دیتابیس کشیده نشود و سرعت بالا برود
+
+    // ۳. دریافت سفارش‌های آماده تحویلِ امروز
+    const ready_orders = await Order.find({
+      status: 'ready_for_delivery',
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    }).select('daily_order_number status updatedAt');
+
+    // ۴. ارسال پاسخ موفق به همراه دو آرایه جداگانه
+    res.status(200).json({
+      status: 'success',
+      data: {
+        preparing_orders,
+        ready_orders
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ خطا در دریافت اطلاعات کیوسک:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'خطای سرور در دریافت لیست سفارش‌های کیوسک'
+    });
+  }
 };

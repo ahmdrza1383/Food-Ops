@@ -12,6 +12,8 @@ const MenuItem = require('../models/MenuItem');
 const Order = require('../models/Order');
 const OrderLog = require('../models/OrderLog');
 const Discount = require('../models/Discount');
+const SystemSetting = require('../models/SystemSetting');
+const DailyCounter = require('../models/DailyCounter');
 
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -22,7 +24,7 @@ async function seedFullDatabase() {
         console.log('Connected successfully.\n');
 
 
-        // اگر می‌خواهید دیتابیس را پاک کنید، خطوط زیر را فعال کنید:
+        // پاک کردن دیتابیس شامل تنظیمات سیستم و شمارنده روزانه
         await Promise.all([
             Role.deleteMany({}),
             User.deleteMany({}),
@@ -30,17 +32,31 @@ async function seedFullDatabase() {
             MenuItem.deleteMany({}),
             Order.deleteMany({}),
             OrderLog.deleteMany({}),
-            Discount.deleteMany({})
+            Discount.deleteMany({}),
+            SystemSetting.deleteMany({}),
+            DailyCounter.deleteMany({})
         ]);
         console.log('Database cleared.\n');
 
 
+        // ==========================================
+        // ایجاد تنظیمات سیستم
+        // ==========================================
+        console.log('Creating System Settings...');
+        const newSetting = await SystemSetting.create({
+            opening_time: "08:00",
+            closing_time: "22:00",
+            is_accepting_orders: true
+        });
+        console.log('✅ System settings successfully created.\n');
+
+
         console.log('Creating Roles...');
         const roles = await Role.insertMany([
-            { name: 'admin', permissions: ['all'] },
-            { name: 'kitchen', permissions: ['view_orders', 'update_status'] },
-            { name: 'delivery', permissions: ['view_ready_orders', 'deliver'] },
-            { name: 'customer', permissions: ['create_order', 'view_own', 'cancel_own'] }
+            { name: 'Admin', permissions: ['all'] },
+            { name: 'Kitchen Staff', permissions: ['view_orders', 'update_status'] },
+            { name: 'Cashier', permissions: ['view_ready_orders', 'deliver'] },
+            { name: 'Customer', permissions: ['create_order', 'view_own', 'cancel_own'] }
         ]);
         const roleMap = {};
         roles.forEach(r => { roleMap[r.name] = r._id; });
@@ -52,27 +68,27 @@ async function seedFullDatabase() {
 
         const users = await User.insertMany([
             // ادمین
-            { fullname: 'مدیر سیستم', phone_number: '09121111111', password: hashedPassword, role_id: roleMap.admin },
+            { fullname: 'مدیر سیستم', phone_number: '09121111111', password: hashedPassword, role_id: roleMap.Admin },
             // آشپزخانه
-            { fullname: 'احمد رضایی', phone_number: '09122222222', password: hashedPassword, role_id: roleMap.kitchen },
-            { fullname: 'محمد کریمی', phone_number: '09123333333', password: hashedPassword, role_id: roleMap.kitchen },
-            { fullname: 'سعید محمدی', phone_number: '09124444444', password: hashedPassword, role_id: roleMap.kitchen },
+            { fullname: 'احمد رضایی', phone_number: '09122222222', password: hashedPassword, role_id: roleMap['Kitchen Staff'] },
+            { fullname: 'محمد کریمی', phone_number: '09123333333', password: hashedPassword, role_id: roleMap['Kitchen Staff'] },
+            { fullname: 'سعید محمدی', phone_number: '09124444444', password: hashedPassword, role_id: roleMap['Kitchen Staff'] },
             // صندوق‌دار / تحویل
-            { fullname: 'نرگس حسینی', phone_number: '09125555555', password: hashedPassword, role_id: roleMap.delivery },
-            { fullname: 'پریسا احمدی', phone_number: '09126666666', password: hashedPassword, role_id: roleMap.delivery },
+            { fullname: 'نرگس حسینی', phone_number: '09125555555', password: hashedPassword, role_id: roleMap.Cashier },
+            { fullname: 'پریسا احمدی', phone_number: '09126666666', password: hashedPassword, role_id: roleMap.Cashier },
             // مشتریان
-            { fullname: 'امیر حسین زاده', phone_number: '09127777777', password: hashedPassword, role_id: roleMap.customer },
-            { fullname: 'زهرا موسوی', phone_number: '09128888888', password: hashedPassword, role_id: roleMap.customer },
-            { fullname: 'رضا نصیری', phone_number: '09129999999', password: hashedPassword, role_id: roleMap.customer },
-            { fullname: 'سارا جعفری', phone_number: '09121010101', password: hashedPassword, role_id: roleMap.customer },
-            { fullname: 'مهدی قاسمی', phone_number: '09121121212', password: hashedPassword, role_id: roleMap.customer },
-            { fullname: 'فاطمه رحیمی', phone_number: '09121232323', password: hashedPassword, role_id: roleMap.customer },
-            { fullname: 'حسن عباسی', phone_number: '09121343434', password: hashedPassword, role_id: roleMap.customer },
-            { fullname: 'مریم کاظمی', phone_number: '09121454545', password: hashedPassword, role_id: roleMap.customer },
-            { fullname: 'علی شریفی', phone_number: '09121565656', password: hashedPassword, role_id: roleMap.customer },
-            { fullname: 'نازنین نوری', phone_number: '09121676767', password: hashedPassword, role_id: roleMap.customer },
-            { fullname: 'پویا جمالی', phone_number: '09121787878', password: hashedPassword, role_id: roleMap.customer },
-            { fullname: 'گلناز حیدری', phone_number: '09121898989', password: hashedPassword, role_id: roleMap.customer }
+            { fullname: 'امیر حسین زاده', phone_number: '09127777777', password: hashedPassword, role_id: roleMap.Customer },
+            { fullname: 'زهرا موسوی', phone_number: '09128888888', password: hashedPassword, role_id: roleMap.Customer },
+            { fullname: 'رضا نصیری', phone_number: '09129999999', password: hashedPassword, role_id: roleMap.Customer },
+            { fullname: 'سارا جعفری', phone_number: '09121010101', password: hashedPassword, role_id: roleMap.Customer },
+            { fullname: 'مهدی قاسمی', phone_number: '09121121212', password: hashedPassword, role_id: roleMap.Customer },
+            { fullname: 'فاطمه رحیمی', phone_number: '09121232323', password: hashedPassword, role_id: roleMap.Customer },
+            { fullname: 'حسن عباسی', phone_number: '09121343434', password: hashedPassword, role_id: roleMap.Customer },
+            { fullname: 'مریم کاظمی', phone_number: '09121454545', password: hashedPassword, role_id: roleMap.Customer },
+            { fullname: 'علی شریفی', phone_number: '09121565656', password: hashedPassword, role_id: roleMap.Customer },
+            { fullname: 'نازنین نوری', phone_number: '09121676767', password: hashedPassword, role_id: roleMap.Customer },
+            { fullname: 'پویا جمالی', phone_number: '09121787878', password: hashedPassword, role_id: roleMap.Customer },
+            { fullname: 'گلناز حیدری', phone_number: '09121898989', password: hashedPassword, role_id: roleMap.Customer }
         ]);
         const userMap = {};
         users.forEach(u => { userMap[u.fullname] = u._id; });
@@ -144,14 +160,14 @@ async function seedFullDatabase() {
             { code: 'FOOD20', discount_percent: 20, expiration_date: new Date('2027-06-01'), is_active: true },
             { code: 'WELCOME', discount_percent: 15, expiration_date: new Date('2026-12-31'), is_active: true },
             { code: 'HOLIDAY', discount_percent: 25, expiration_date: new Date('2026-10-01'), is_active: false },
-            { code: "test", discount_percent: 20, expiration_date: new Date("2026-08-03T23:59:59.000Z"), is_active: true}
+            { code: "TESTCODE", discount_percent: 20, expiration_date: new Date("2026-08-03"), is_active: true}
         ]);
         const discountMap = {};
         discounts.forEach(d => { discountMap[d.code] = d._id; });
         console.log('Discount codes created.\n');
 
-        console.log('Creating Orders and Logs...');
 
+        console.log('Creating Orders...');
         const getOrderItems = (itemNames) => {
             return itemNames.map(name => {
                 const item = menuMap[name];
@@ -174,13 +190,13 @@ async function seedFullDatabase() {
 
         const getRandomItem = (list) => list[Math.floor(Math.random() * list.length)];
         const getAllCustomers = () => {
-            const customers = users.filter(u => u.role_id.toString() === roleMap.customer.toString());
+            const customers = users.filter(u => u.role_id.toString() === roleMap.Customer.toString());
             return customers.map(u => ({ name: u.fullname, id: u._id }));
         };
         const customersList = getAllCustomers();
 
-        const kitchenStaff = users.filter(u => u.role_id.toString() === roleMap.kitchen.toString());
-        const deliveryStaff = users.filter(u => u.role_id.toString() === roleMap.delivery.toString());
+        const kitchenStaff = users.filter(u => u.role_id.toString() === roleMap['Kitchen Staff'].toString());
+        const deliveryStaff = users.filter(u => u.role_id.toString() === roleMap.Cashier.toString());
 
         const baseDate = new Date('2026-07-20T10:00:00');
         const oneDay = 24 * 60 * 60 * 1000;
@@ -235,8 +251,30 @@ async function seedFullDatabase() {
         console.log(`✅ ${insertedOrders.length} orders created.\n`);
 
 
-        console.log('📝 Creating Order Logs...');
+        // ==========================================
+        // تخصیص شماره سفارش روزانه برای سفارش‌های سید شده
+        // ==========================================
+        console.log('--- Generating Daily Order Numbers ---');
+        // سفارش‌ها را بر اساس زمان ساخت مرتب می‌کنیم تا ترتیب شماره‌ها منطقی باشد
+        const sortedOrders = await Order.find().sort({ createdAt: 1 });
+        
+        for (const order of sortedOrders) {
+            const dateObj = new Date(order.createdAt);
+            const dateStr = dateObj.toISOString().split('T')[0];
 
+            const counter = await DailyCounter.findOneAndUpdate(
+                { date: dateStr },
+                { $inc: { seq: 1 } },
+                { new: true, upsert: true, setDefaultsOnInsert: true }
+            );
+
+            order.daily_order_number = counter.seq;
+            await order.save();
+        }
+        console.log('✅ Daily order numbers successfully updated for all orders.\n');
+
+
+        console.log('📝 Creating Order Logs...');
         const logs = [];
         const allOrders = await Order.find().populate('customer_id');
 

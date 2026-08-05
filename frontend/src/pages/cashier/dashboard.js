@@ -65,6 +65,9 @@ searchInput.addEventListener('input', (e) => {
 /**
  * رندر کارت‌های سفارش صندوق‌داری با اعمال فیلتر جستجو
  */
+/**
+ * رندر کارت‌های سفارش صندوق‌داری با اعمال فیلتر جستجو
+ */
 function renderOrders() {
   // اعمال فیلتر روی لیست اصلی
   let filteredOrders = cashierOrders;
@@ -73,7 +76,10 @@ function renderOrders() {
     filteredOrders = cashierOrders.filter(order => {
       const phone = order.customer_id?.phone_number?.toLowerCase() || '';
       const id = order._id?.toLowerCase() || '';
-      return id.includes(searchQuery) || phone.includes(searchQuery);
+      // 👈 اضافه کردن شماره سفارش روزانه به فیلتر جستجو
+      const dailyNum = order.daily_order_number ? String(order.daily_order_number) : '';
+      
+      return id.includes(searchQuery) || phone.includes(searchQuery) || dailyNum.includes(searchQuery);
     });
   }
 
@@ -90,7 +96,6 @@ function renderOrders() {
   messageContainer.classList.add('hidden');
   ordersContainer.innerHTML = '';
 
-  // اینجا به جای cashierOrders، از filteredOrders استفاده می‌کنیم
   filteredOrders.forEach(order => {
     const card = createOrderCard(order);
     ordersContainer.appendChild(card);
@@ -116,6 +121,9 @@ function createOrderCard(order) {
     minute: '2-digit'
   }) : 'نامشخص';
   const orderId = order._id;
+  
+  // 👈 دریافت شماره سفارش روزانه با مقدار جایگزین
+  const orderNumber = order.daily_order_number || '---';
 
   const actionButtonHtml = `
     <button data-id="${orderId}" class="deliver-btn bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm shadow-purple-600/20 flex items-center gap-1.5">
@@ -146,6 +154,10 @@ function createOrderCard(order) {
     <!-- هدر کارت سفارش -->
     <div class="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-200/80">
       <div class="flex items-center gap-2">
+        <!-- 👈 نمایش درشت شماره سفارش برای صندوق‌دار -->
+        <span class="text-xl font-black text-slate-800 ml-2 bg-white px-3 py-1 rounded-lg border border-slate-200 shadow-sm">
+          #${orderNumber}
+        </span>
         <span class="px-3 py-1.5 rounded-full text-xs font-bold border ${statusClasses}">
           ${statusTitle}
         </span>

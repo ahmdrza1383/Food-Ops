@@ -4,6 +4,8 @@ const orderController = require('../controllers/orderController');
 const { protect, kitchenStaffOrAdmin, customerOnly, cashierOrAdmin } = require('../middlewares/authMiddleware');
 const checkWorkingHours = require('../middlewares/workingHoursMiddleware');
 
+router.get('/kiosk', orderController.getKioskOrders);
+
 router.use(protect);
 
 router.post('/', customerOnly, checkWorkingHours, orderController.createOrder);

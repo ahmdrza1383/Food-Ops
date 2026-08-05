@@ -107,7 +107,6 @@ function createOrderCard(order) {
     cardBg: 'bg-white border-slate-200'
   };
 
-  // اعمال رنگ پس‌زمینه و بوردر داینامیک مشابه عکس دوم
   card.className = `rounded-2xl border p-6 shadow-sm hover:shadow-md transition ${statusInfo.cardBg}`;
 
   const customerName = order.customer_id?.fullname || 'مشتری';
@@ -119,7 +118,10 @@ function createOrderCard(order) {
     hour: '2-digit',
     minute: '2-digit'
   }) : 'نامشخص';
+  
   const orderId = order._id;
+  // 👈 دریافت شماره سفارش روزانه با مقدار جایگزین
+  const orderNumber = order.daily_order_number || '---';
 
   let actionButtonHtml = '';
   if (status === 'registered') {
@@ -159,6 +161,10 @@ function createOrderCard(order) {
     <!-- هدر کارت سفارش -->
     <div class="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-200/80">
       <div class="flex items-center gap-2">
+        <!-- 👈 نمایش درشت شماره سفارش برای آشپز -->
+        <span class="text-xl font-black text-slate-800 ml-2 bg-white px-3 py-1 rounded-lg border border-slate-200 shadow-sm">
+          #${orderNumber}
+        </span>
         <span class="px-3 py-1.5 rounded-full text-xs font-bold border ${statusInfo.classes}">
           ${statusInfo.title}
         </span>
