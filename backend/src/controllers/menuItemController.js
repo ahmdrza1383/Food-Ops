@@ -189,7 +189,7 @@ exports.updateMenuItem = async (req, res) => {
     if (imageUrl !== undefined) {
       updateData.image_url = imageUrl;
     }
-    delete updateData.image_url;
+    // delete updateData.image_url;
 
     const updatedMenuItem = await MenuItem.findByIdAndUpdate(
       id,
