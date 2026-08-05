@@ -46,4 +46,9 @@ router.delete('/discounts/:id', adminController.deleteDiscount);
 // @access  Private (Admin only)
 router.patch('/discounts/:id/status', adminController.toggleDiscountStatus);
 
+// @desc    به‌روزرسانی تنظیمات ساعت کاری و وضعیت پذیرش سفارش
+// @route   PUT /api/admin/settings/working-hours
+// @access  Private (Admin only)
+router.put('/settings/working-hours', adminController.updateSystemSettings);
+
 module.exports = router;

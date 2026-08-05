@@ -3,6 +3,8 @@ const MenuItem = require('../models/MenuItem');
 const User = require('../models/User');
 const Role = require('../models/Role');
 const Discount = require('../models/Discount'); 
+const SystemSetting = require('../models/SystemSetting');
+
 const mongoose = require('mongoose');
 
 const VALID_SORT_FIELDS = ['createdAt', 'updatedAt', 'final_price', 'total_price', 'status'];
@@ -526,5 +528,38 @@ exports.toggleDiscountStatus = async (req, res) => {
         res.status(200).json({ status: 'success', message: 'وضعیت با موفقیت تغییر کرد.' });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'خطا در تغییر وضعیت کد تخفیف.' });
+    }
+};
+
+// @desc    به‌روزرسانی تنظیمات ساعت کاری و وضعیت پذیرش سفارش
+// @route   PUT /api/admin/settings/working-hours
+// @access  Private (Admin only)
+exports.updateSystemSettings = async (req, res) => {
+    try {
+        const { opening_time, closing_time, is_accepting_orders } = req.body;
+
+        let settings = await SystemSetting.findOne();
+
+        if (!settings) {
+            settings = new SystemSetting({});
+        }
+
+        if (opening_time !== undefined) settings.opening_time = opening_time;
+        if (closing_time !== undefined) settings.closing_time = closing_time;
+        if (is_accepting_orders !== undefined) settings.is_accepting_orders = is_accepting_orders;
+
+        await settings.save();
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'تنظیمات ساعت کاری و سیستم با موفقیت به‌روزرسانی شد.',
+            data: { settings }
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: 'error',
+            message: 'خطا در به‌روزرسانی تنظیمات سیستم.',
+            error: error.message
+        });
     }
 };
