@@ -11,4 +11,6 @@ router.patch('/:id', protect, admin, categoryController.updateCategory);
 
 router.delete('/:id', protect, admin, categoryController.deleteCategory);
 
+router.get('/:id', protect, admin, categoryController.getCategoryById);
+
 module.exports = router;

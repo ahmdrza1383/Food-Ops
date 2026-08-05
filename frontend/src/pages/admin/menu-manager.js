@@ -225,6 +225,7 @@ adminForm.addEventListener('submit', async (e) => {
     let payload = {};
     let endpoint = '';
     let method = 'POST';
+    let customHeaders = undefined;
 
     if (type === 'category') {
         if (!catName.value.trim()) {
@@ -232,9 +233,22 @@ adminForm.addEventListener('submit', async (e) => {
             catName.focus();
             return;
         }
-        payload = { name: catName.value.trim(), is_active: catActive.checked };
+        
+        // ارسال به صورت JSON استاندارد با هدر مشخص
+        payload = JSON.stringify({ 
+            name: catName.value.trim(), 
+            is_active: catActive.checked 
+        });
+        
+        customHeaders = {
+            'Content-Type': 'application/json'
+        };
+
         endpoint = '/categories';
-        if (isEdit) { method = 'PATCH'; endpoint = `/categories/${id}`; }
+        if (isEdit) { 
+            method = 'PATCH'; 
+            endpoint = `/categories/${id}`; 
+        }
 
     } else if (type === 'menu') {
         if (!menuName.value.trim()) {
@@ -276,7 +290,7 @@ adminForm.addEventListener('submit', async (e) => {
         await fetchAPI(endpoint, {
             method,
             body: payload,
-            headers: type === 'menu' ? {} : undefined
+            headers: customHeaders
         });
         closeModal();
         showToast('عملیات با موفقیت انجام شد.', 'success');
@@ -293,9 +307,18 @@ function attachCategoryEvents() {
             const id = e.target.dataset.id;
             try {
                 const res = await fetchAPI(`/categories/${id}`);
-                const cat = res.data.category;
+                // بررسی ساختار پاسخ سرور به صورت انعطاف‌پذیر
+                const cat = res.data?.category || res.data?.data || res.data;
+                
+                if (!cat) {
+                    throw new Error('اطلاعات دسته‌بندی یافت نشد');
+                }
+
                 openModal('ویرایش دسته‌بندی', 'category', cat);
-            } catch (err) { showToast("خطا در دریافت اطلاعات", 'error'); }
+            } catch (err) { 
+                console.error(err);
+                showToast(err.message || "خطا در دریافت اطلاعات", 'error'); 
+            }
         });
     });
 
